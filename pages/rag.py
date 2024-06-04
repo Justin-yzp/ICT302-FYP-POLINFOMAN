@@ -22,8 +22,9 @@ if "messages" not in st.session_state.keys():  # Initialize the chat messages hi
     ]
 
 class PDFReader:
-    def __init__(self, input_dir):
+    def __init__(self, input_dir, chunk_size=512):
         self.input_dir = input_dir
+        self.chunk_size = chunk_size
 
     def load_data(self):
         docs = []
@@ -33,25 +34,28 @@ class PDFReader:
                     file_path = os.path.join(root, file)
                     with open(file_path, "rb") as f:
                         pdf_content = self.extract_text_from_pdf(f)
-                        doc = Document(text=pdf_content)
-                        docs.append(doc)
+                        chunks = self.chunk_text(pdf_content)
+                        for i, chunk in enumerate(chunks):
+                            doc = Document(text=chunk, extra_info={"file_path": file_path, "chunk_id": i})
+                            docs.append(doc)
         return docs
 
     def extract_text_from_pdf(self, file):
         return extract_text(file)
 
+    def chunk_text(self, text):
+        # Split text into chunks of size `self.chunk_size`
+        words = text.split()
+        return [' '.join(words[i:i + self.chunk_size]) for i in range(0, len(words), self.chunk_size)]
+
 @st.cache_resource(show_spinner=False)
 def load_data():
     with st.spinner(text="Loading and indexing the Streamlit docs – hang tight! This should take 1-2 minutes."):
-        reader = PDFReader(input_dir="./pdfs")
+        reader = PDFReader(input_dir="./pdfs", chunk_size=512)  # Adjust chunk size as needed
         docs = reader.load_data()
-        for doc in docs:
-            doc.extra_info["file_path"] = doc.text[:512]  # Store file path as metadata
-            doc.text = ""  # Clear text to save memory
         Settings.llm = OpenAI(model="gpt-3.5-turbo", temperature=0.5, system_prompt="You are an expert on university document library and your job is to answer questions. Assume that all questions are related to the Streamlit Python library. Keep your answers concise and based on facts – do not hallucinate features.")
-        index = VectorStoreIndex.from_documents(docs, chunk_size=16384)  # Increase the chunk size
+        index = VectorStoreIndex.from_documents(docs)  # No need to specify chunk size here since chunks are pre-made
         return index
-
 
 def rag():
     index = load_data()
@@ -59,31 +63,33 @@ def rag():
     if "chat_engine" not in st.session_state.keys():  # Initialize the chat engine
         st.session_state.chat_engine = index.as_chat_engine(chat_mode="condense_question", verbose=True)
 
-    if prompt := st.chat_input("Your question"):  # Prompt for user input and save to chat history
+    if prompt := st.text_input("Your question"):  # Prompt for user input and save to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
 
-    for message in st.session_state.messages:  # Display the prior chat messages
-        with st.chat_message(message["role"]):
-            if message["role"] == "assistant" and "source" in message:
-                st.write(f"**Source:** {message['source']}\n{message['content']}")
-            else:
-                st.write(message["content"])
-
-    # If last message is not from assistant, generate a new response
+    # Generate and display the latest response
     if st.session_state.messages[-1]["role"] != "assistant":
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                response = st.session_state.chat_engine.chat(st.session_state.messages[-1]["content"])
-                source_nodes = response.source_nodes  # Fetch relevant sources
-                if source_nodes:
-                    document = source_nodes[0]  # Extract the Document object from NodeWithScore
-                    source = document.metadata.get("file_path", "Unknown source")
-                    st.write(f"**Source:** {source}\n{response.response}")
-                    message = {"role": "assistant", "content": response.response, "source": source}
-                else:
-                    st.write(response.response)
-                    message = {"role": "assistant", "content": response.response}
-                st.session_state.messages.append(message)  # Add response to message history
+        with st.spinner("Thinking..."):
+            response = st.session_state.chat_engine.chat(st.session_state.messages[-1]["content"])
+            source_nodes = response.source_nodes  # Fetch relevant sources
+            if source_nodes:
+                document = source_nodes[0]  # Extract the Document object from NodeWithScore
+                source = document.metadata.get("file_path", "Unknown source")
+                st.session_state.messages.append({"role": "assistant", "content": response.response, "source": source})
+            else:
+                st.session_state.messages.append({"role": "assistant", "content": response.response})
+
+    # Layout for source and response
+    col1, col2 = st.columns([1, 2])  # Specify the width ratios
+
+    with col1:
+        if st.session_state.messages[-1]["role"] == "assistant" and "source" in st.session_state.messages[-1]:
+            source_path = st.session_state.messages[-1]["source"]
+            source_name = os.path.basename(source_path)
+            source_link = f"[{source_name}](/pdfs/{source_name})"
+            st.markdown(f"**Source:** {source_link}")
+
+    with col2:
+        st.write(st.session_state.messages[-1]["content"])
 
 if __name__ == '__main__':
     rag()
