@@ -1,9 +1,10 @@
 import streamlit as st
 from auth.login import login
-from pages.dashboard import dashboard
-from pages.rag import rag
-from pages.register import register
+from pages_app.dashboard import dashboard
+from pages_app.rag import rag
+from pages_app.register import register
 
+st.set_page_config(layout="wide")
 # Initialize session state if it doesn't exist
 if 'page' not in st.session_state:
     st.session_state['page'] = 'login'
