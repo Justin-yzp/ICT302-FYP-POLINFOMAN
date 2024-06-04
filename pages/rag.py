@@ -12,7 +12,8 @@ import os
 from pdfminer.high_level import extract_text
 
 st.set_page_config(page_title="Chat with the Streamlit docs, powered by LlamaIndex", page_icon="🦙", layout="centered", initial_sidebar_state="auto", menu_items=None)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+#openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = st.secrets.openai_key
 st.title("Chat with the Streamlit docs, powered by LlamaIndex 💬🦙")
 
 if "messages" not in st.session_state.keys():  # Initialize the chat messages history
