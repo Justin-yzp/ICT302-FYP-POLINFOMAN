@@ -1,3 +1,5 @@
+import base64
+
 import streamlit as st
 import openai
 from dotenv import load_dotenv
@@ -85,8 +87,15 @@ def rag():
         if st.session_state.messages[-1]["role"] == "assistant" and "source" in st.session_state.messages[-1]:
             source_path = st.session_state.messages[-1]["source"]
             source_name = os.path.basename(source_path)
-            source_link = f"[{source_name}](/pdfs/{source_name})"
-            st.markdown(f"**Source:** {source_link}")
+
+            st.markdown(f"**Source:** {source_name}")
+
+            def download_file():
+                with open(source_path, "rb") as f:
+                    contents = f.read()
+                st.download_button(label="Download PDF", data=contents, file_name=source_name, mime="application/pdf")
+
+            download_file()
 
     with col2:
         st.write(st.session_state.messages[-1]["content"])
