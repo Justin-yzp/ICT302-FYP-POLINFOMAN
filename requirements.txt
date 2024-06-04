@@ -5,3 +5,4 @@ openai
 llama-index
 llama-index-llms-openai
 nltk
+python-dotenv
