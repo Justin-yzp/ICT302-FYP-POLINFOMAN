@@ -88,7 +88,13 @@ def rag():
             source_path = st.session_state.messages[-1]["source"]
             source_name = os.path.basename(source_path)
 
-            st.markdown(f"**Source:** {source_name}")
+            # Apply custom CSS to style the left panel
+            st.markdown(
+                f'<div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">'
+                f'**Source:** {source_name}'
+                f'</div>',
+                unsafe_allow_html=True
+            )
 
             def download_file():
                 with open(source_path, "rb") as f:
@@ -98,7 +104,13 @@ def rag():
             download_file()
 
     with col2:
-        st.write(st.session_state.messages[-1]["content"])
+        # Apply custom CSS to style the right panel
+        st.markdown(
+            '<div style="background-color: #f9f9f9; padding: 10px; border-radius: 5px;">'
+            f'{st.session_state.messages[-1]["content"]}'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
 if __name__ == '__main__':
     rag()
