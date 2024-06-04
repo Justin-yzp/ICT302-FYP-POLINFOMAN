@@ -12,6 +12,10 @@ import os
 from pdfminer.high_level import extract_text
 
 st.set_page_config(page_title="Chat with the Streamlit docs, powered by LlamaIndex", page_icon="🦙", layout="centered", initial_sidebar_state="auto", menu_items=None)
+<<<<<<< HEAD
+=======
+#openai.api_key = os.getenv("OPENAI_API_KEY")
+>>>>>>> dac8c0014718eac5c0f8c003690a2bb343a7a501
 openai.api_key = st.secrets.openai_key
 st.title("Chat with the Streamlit docs, powered by LlamaIndex 💬🦙")
 
