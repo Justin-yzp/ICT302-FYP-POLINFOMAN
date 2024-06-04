@@ -93,7 +93,6 @@ def dashboard():
 
     st.title("Dashboard")
 
-
     st.write("## Calendar")
     # Initialize session state variables
     if "selected_date" not in st.session_state:
@@ -130,8 +129,5 @@ def dashboard():
 
     # Call the function to create and display the calendar
     create_calendar(st.session_state.selected_date.year, st.session_state.selected_date.month)
-
-    if st.button("RAG Retrieval Augmented Generation"):
-        st.session_state['page'] = 'rag'
 
     st.sidebar.write(f"Logged in as {st.session_state['username']}")

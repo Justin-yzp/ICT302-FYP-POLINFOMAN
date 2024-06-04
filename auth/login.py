@@ -13,17 +13,20 @@ def login():
             st.session_state['logged_in'] = True
             st.session_state['username'] = username
 
-            # Redirect to the register page if the user is an admin
-            if username == 'admin':  # Replace with actual admin username check
+            # Set the is_admin flag based on username
+            st.session_state['is_admin'] = username == 'admin'
+
+            # Set the page based on user role
+            if st.session_state['is_admin']:
                 st.session_state['page'] = 'register'
             else:
                 st.session_state['page'] = 'dashboard'
 
-            # Force a rerun to update the login state
-            st.rerun()
 
         else:
             st.error("Invalid username or password")
+
+
 
 if __name__ == '__main__':
     login()

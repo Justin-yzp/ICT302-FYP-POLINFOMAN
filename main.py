@@ -4,25 +4,60 @@ from pages.dashboard import dashboard
 from pages.rag import rag
 from pages.register import register
 
-st.sidebar.title("Navigation")
-
+# Initialize session state if it doesn't exist
 if 'page' not in st.session_state:
     st.session_state['page'] = 'login'
 
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 
-if st.session_state['logged_in']:
-    st.sidebar.write(f"Logged in as {st.session_state['username']}")
+if 'is_admin' not in st.session_state:
+    st.session_state['is_admin'] = False
 
-if st.session_state['page'] == 'login':
-    login()
-elif st.session_state['page'] == 'dashboard':
-    dashboard()
-elif st.session_state['page'] == 'rag':
-    rag()
-elif st.session_state['page'] == 'register':
-    register()
+# Logout button
+def logout():
+    st.session_state['logged_in'] = False
+    st.session_state['username'] = ''
+    st.session_state['page'] = 'login'
+    st.session_state['is_admin'] = False
 
+# Function to display the appropriate page based on session state
+def display_page():
+    if st.session_state['page'] == 'login':
+        login()
+    elif st.session_state['page'] == 'dashboard':
+        dashboard()
+    elif st.session_state['page'] == 'rag':
+        st.title("RAG Retrieval Augmented Generation")
+        if "messages" not in st.session_state:
+            st.session_state.messages = [
+                {"role": "assistant", "content": "Ask me a question about university documents!"}
+            ]
+        rag()
+    elif st.session_state['page'] == 'register' and st.session_state['is_admin']:
+        register()
+
+# Display the appropriate page
 if st.session_state['logged_in']:
-    st.sidebar.button("Logout", on_click=lambda: st.session_state.update({'logged_in': False, 'username': '', 'page': 'login'}))
+    st.write(f"Logged in as {st.session_state['username']}")
+
+    # Create navigation tabs
+    tab_map = {
+        'Dashboard': 'dashboard',
+        'RAG': 'rag'
+    }
+
+    if st.session_state['is_admin']:
+        tab_map['Register'] = 'register'
+
+    selected_tab = st.selectbox("Navigation", list(tab_map.keys()))
+
+    # Update session state based on selected tab
+    st.session_state['page'] = tab_map[selected_tab]
+    display_page()
+
+    if st.button("Logout"):
+        logout()
+
+else:
+    display_page()
