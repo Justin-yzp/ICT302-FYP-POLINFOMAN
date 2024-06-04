@@ -18,5 +18,12 @@ def login():
                 st.session_state['page'] = 'register'
             else:
                 st.session_state['page'] = 'dashboard'
+
+            # Force a rerun to update the login state
+            st.rerun()
+
         else:
             st.error("Invalid username or password")
+
+if __name__ == '__main__':
+    login()
