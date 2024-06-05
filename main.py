@@ -21,6 +21,7 @@ def logout():
     st.session_state['username'] = ''
     st.session_state['page'] = 'login'
     st.session_state['is_admin'] = False
+    st.rerun()
 
 # Function to display the appropriate page based on session state
 def display_page():
