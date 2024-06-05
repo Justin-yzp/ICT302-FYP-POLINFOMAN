@@ -21,6 +21,7 @@ def login():
                 st.session_state['page'] = 'register'
             else:
                 st.session_state['page'] = 'dashboard'
+            st.rerun()
 
 
         else:
