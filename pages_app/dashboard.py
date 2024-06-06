@@ -130,4 +130,4 @@ def dashboard():
     # Call the function to create and display the calendar
     create_calendar(st.session_state.selected_date.year, st.session_state.selected_date.month)
 
-    st.sidebar.write(f"Logged in as {st.session_state['username']}")
+

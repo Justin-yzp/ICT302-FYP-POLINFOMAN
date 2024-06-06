@@ -32,7 +32,8 @@ def rag():
         st.session_state.processed_chunks = {}
 
     if prompt := st.text_input("Your question"):
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        # Clear existing messages when a new question is submitted
+        st.session_state.messages = [{"role": "user", "content": prompt}]
 
     if st.session_state.messages[-1]["role"] != "assistant":
         with st.spinner("Thinking..."):
@@ -42,7 +43,9 @@ def rag():
                 sources = []
                 for document in source_nodes:
                     source_path = document.metadata.get("file_path", "Unknown source")
-                    sources.append(os.path.basename(source_path))
+                    # Check if source is already in sources list
+                    if os.path.basename(source_path) not in sources:
+                        sources.append(os.path.basename(source_path))
                 st.session_state.messages.append(
                     {"role": "assistant", "content": response.response, "sources": sources})
             else:
@@ -65,12 +68,12 @@ def rag():
                 )
 
                 def download_files():
-                    for source in sources:
+                    for i, source in enumerate(sources):
                         source_path = os.path.join("pdfs", source)
                         with open(source_path, "rb") as f:
                             contents = f.read()
                         st.download_button(label=f"Download {source}", data=contents, file_name=source,
-                                           mime="application/pdf")
+                                           mime="application/pdf", key=f"download_{i}")
 
                 download_files()
 
