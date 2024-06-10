@@ -1,8 +1,8 @@
 import streamlit as st
 from auth.login import login
-from pages_app.dashboard import dashboard
 from pages_app.rag import rag
 from pages_app.register import register
+from utils.calendar import Calendar  # Import the Calendar class
 
 st.set_page_config(layout="wide")
 # Initialize session state if it doesn't exist
@@ -28,7 +28,9 @@ def display_page():
     if st.session_state['page'] == 'login':
         login()
     elif st.session_state['page'] == 'dashboard':
-        dashboard()
+        db_path = r'utils\governance_data.db'
+        cal = Calendar(db_path)
+        cal.display_calendar()  # Display the calendar page
     elif st.session_state['page'] == 'rag':
         st.title("RAG Retrieval Augmented Generation")
         if "messages" not in st.session_state:
