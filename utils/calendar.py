@@ -92,6 +92,6 @@ class Calendar:
         self.close_connection()
 
 # Usage
-db_path = r'C:\Users\zhanp\OneDrive\Desktop\ICT302-main\utils\governance_data.db'
+db_path = r'utils\governance_data.db'
 cal = Calendar(db_path)
 cal.display_calendar()
