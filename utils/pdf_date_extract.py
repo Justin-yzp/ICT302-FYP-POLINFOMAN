@@ -80,6 +80,33 @@ def store_info(file_name, info):
     ))
     conn.commit()
 
+def fetch_all_governance_records():
+    cursor.execute('SELECT * FROM Governance')
+    records = cursor.fetchall()
+    return records
+
+def fetch_all_dates():
+    cursor.execute('SELECT date_effective, review_date FROM Governance')
+    dates = cursor.fetchall()
+    return dates
+
+def fetch_events_for_date(target_date):
+    target_date = datetime.strptime(target_date, '%d/%m/%Y').date()
+    cursor.execute('''
+    SELECT file_name, date_effective, review_date 
+    FROM Governance 
+    WHERE date_effective = ? OR review_date = ?
+    ''', (target_date, target_date))
+    events = cursor.fetchall()
+    return events
+
+def close_db_connection():
+    conn.close()
+
+
+
+
+
 # Directory containing PDFs
 pdf_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'pdfs')
 
