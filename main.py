@@ -2,7 +2,7 @@ import streamlit as st
 from auth.login import login
 from pages_app.rag import rag
 from pages_app.register import register
-from utils.calendar import Calendar  # Import the Calendar class
+from utils.calendar_dashboard import Calendar  # Import the Calendar class
 
 st.set_page_config(layout="wide")
 # Initialize session state if it doesn't exist
