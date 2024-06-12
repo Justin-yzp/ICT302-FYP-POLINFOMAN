@@ -93,6 +93,6 @@ class Calendar:
 
 # Usage
 
-db_path = 'utils\governance_data.db'
+db_path = 'utils/governance_data.db'
 cal = Calendar(db_path)
 cal.display_calendar()
