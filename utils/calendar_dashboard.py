@@ -6,7 +6,7 @@ import os
 
 
 class Calendar:
-    def __init__(self, db_path="governance_data.db"):
+    def __init__(self, db_path="utils/governance_data.db"):
         self.conn = sqlite3.connect(db_path)
 
     def fetch_all_dates(self):
