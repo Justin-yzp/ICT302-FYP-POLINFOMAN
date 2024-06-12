@@ -6,9 +6,7 @@ import os
 
 
 class Calendar:
-    def __init__(self, db_path):
-        if not os.path.exists(db_path):
-            raise FileNotFoundError(f"Database file '{db_path}' not found.")
+    def __init__(self, db_path="governance_data.db"):
         self.conn = sqlite3.connect(db_path)
 
     def fetch_all_dates(self):
@@ -96,8 +94,6 @@ class Calendar:
 
 
 # Usage
-root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-db_filename = os.path.join(root_path, 'governance_data.db')
-print(db_filename)
-cal = Calendar(db_filename)
+
+cal = Calendar()
 cal.display_calendar()
