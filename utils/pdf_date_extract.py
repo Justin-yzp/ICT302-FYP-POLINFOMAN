@@ -3,9 +3,12 @@ import os
 import re
 import sqlite3
 from datetime import datetime
+# Get the absolute path to the root folder of your project
+root_path = os.path.dirname((os.path.abspath(__file__)))
 
 # Connect to the SQLite database (or create it if it doesn't exist)
-conn = sqlite3.connect('governance_data.db')
+db_path = os.path.join(root_path, 'governance_data.db')
+conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
 # Create a table to store the governance information

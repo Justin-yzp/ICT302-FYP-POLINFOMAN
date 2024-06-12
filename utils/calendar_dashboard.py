@@ -2,11 +2,14 @@ import streamlit as st
 from streamlit_calendar import calendar
 import sqlite3
 from datetime import datetime, timedelta
+import os
+
 
 class Calendar:
     def __init__(self, db_path):
-        self.db_path = db_path
-        self.conn = sqlite3.connect(self.db_path)
+        if not os.path.exists(db_path):
+            raise FileNotFoundError(f"Database file '{db_path}' not found.")
+        self.conn = sqlite3.connect(db_path)
 
     def fetch_all_dates(self):
         cursor = self.conn.cursor()
@@ -91,8 +94,10 @@ class Calendar:
 
         self.close_connection()
 
-# Usage
 
-db_path = 'utils/governance_data.db'
-cal = Calendar(db_path)
+# Usage
+root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+db_filename = os.path.join(root_path, 'governance_data.db')
+print(db_filename)
+cal = Calendar(db_filename)
 cal.display_calendar()
