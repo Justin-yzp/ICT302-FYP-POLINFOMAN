@@ -28,7 +28,7 @@ def display_page():
     if st.session_state['page'] == 'login':
         login()
     elif st.session_state['page'] == 'dashboard':
-        db_path = r'utils\governance_data.db'
+        db_path = 'users.db'
         cal = Calendar(db_path)
         cal.display_calendar()  # Display the calendar page
     elif st.session_state['page'] == 'rag':

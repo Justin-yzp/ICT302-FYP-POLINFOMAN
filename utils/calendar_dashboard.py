@@ -6,7 +6,7 @@ import os
 
 
 class Calendar:
-    def __init__(self, db_path='utils/governance_data.db'):
+    def __init__(self, db_path='users.db'):
         self.conn = sqlite3.connect(db_path)
 
     def fetch_all_dates(self):
@@ -91,6 +91,7 @@ class Calendar:
                     st.markdown(f"**Review Date of {event[0]}**: {event[2]}")
 
         self.close_connection()
+
 
 
 # Usage

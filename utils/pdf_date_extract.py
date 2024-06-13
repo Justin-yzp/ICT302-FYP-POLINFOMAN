@@ -3,11 +3,13 @@ import os
 import re
 import sqlite3
 from datetime import datetime
+
 # Get the absolute path to the root folder of your project
-root_path = os.path.dirname((os.path.abspath(__file__)))
+root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Connect to the SQLite database (or create it if it doesn't exist)
-db_path = os.path.join(root_path, 'governance_data.db')
+db_path = os.path.join(root_path, 'users.db')
+print(f"Database path: {db_path}")
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
@@ -51,37 +53,45 @@ def extract_governance_info(text):
     }
 
 def process_pdf(file_path):
-    doc = fitz.open(file_path)
-    text = ""
-    for page_num in range(doc.page_count):
-        page = doc.load_page(page_num)
-        text += page.get_text()
-    governance_info = extract_governance_info(text)
-    return governance_info
+    try:
+        doc = fitz.open(file_path)
+        text = ""
+        for page_num in range(doc.page_count):
+            page = doc.load_page(page_num)
+            text += page.get_text()
+        governance_info = extract_governance_info(text)
+        return governance_info
+    except Exception as e:
+        print(f"Error processing PDF {file_path}: {e}")
+        return None
 
 def store_info(file_name, info):
-    cursor.execute('''
-    INSERT INTO Governance (file_name, approval_authority, owner, legislation, category, related_documents, date_effective, review_date)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(file_name) DO UPDATE SET
-        approval_authority=excluded.approval_authority,
-        owner=excluded.owner,
-        legislation=excluded.legislation,
-        category=excluded.category,
-        related_documents=excluded.related_documents,
-        date_effective=excluded.date_effective,
-        review_date=excluded.review_date
-    ''', (
-        file_name,
-        info['approval_authority'],
-        info['owner'],
-        info['legislation'],
-        info['category'],
-        info['related_documents'],
-        info['date_effective'],
-        info['review_date']
-    ))
-    conn.commit()
+    try:
+        cursor.execute('''
+        INSERT INTO Governance (file_name, approval_authority, owner, legislation, category, related_documents, date_effective, review_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(file_name) DO UPDATE SET
+            approval_authority=excluded.approval_authority,
+            owner=excluded.owner,
+            legislation=excluded.legislation,
+            category=excluded.category,
+            related_documents=excluded.related_documents,
+            date_effective=excluded.date_effective,
+            review_date=excluded.review_date
+        ''', (
+            file_name,
+            info['approval_authority'],
+            info['owner'],
+            info['legislation'],
+            info['category'],
+            info['related_documents'],
+            info['date_effective'],
+            info['review_date']
+        ))
+        conn.commit()
+        print(f"Successfully stored info for {file_name}")
+    except Exception as e:
+        print(f"Error storing info for {file_name}: {e}")
 
 def fetch_all_governance_records():
     cursor.execute('SELECT * FROM Governance')
@@ -106,10 +116,6 @@ def fetch_events_for_date(target_date):
 def close_db_connection():
     conn.close()
 
-
-
-
-
 # Directory containing PDFs
 pdf_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'pdfs')
 
@@ -119,9 +125,12 @@ else:
     for file_name in os.listdir(pdf_dir):
         if file_name.endswith('.pdf'):
             file_path = os.path.join(pdf_dir, file_name)
+            print(f"Processing {file_name}")
             governance_info = process_pdf(file_path)
             if governance_info:
                 store_info(file_name, governance_info)
+            else:
+                print(f"Failed to extract governance info for {file_name}")
 
 # Close the database connection
 conn.close()
