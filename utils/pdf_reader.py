@@ -1,7 +1,7 @@
 import os
 import pickle
 import logging
-from pdfminer.high_level import extract_text
+import fitz  # PyMuPDF
 from llama_index.core import Document
 import nltk
 from nltk.tokenize import word_tokenize
@@ -27,33 +27,34 @@ class PDFReader:
                         current_mod_time = os.path.getmtime(file_path)
                         if file_path not in processed_chunks or processed_chunks[file_path][
                             "mod_time"] < current_mod_time:
-                            with open(file_path, "rb") as f:
-                                pdf_content = self.extract_text_from_pdf(f)
-                                self.logger.info(f"Extracted text from {file_path}")
-                                chunks = self.chunk_text(pdf_content)
-                                processed_chunks[file_path] = {
-                                    "chunks": chunks,
-                                    "mod_time": current_mod_time
-                                }
-                                self.save_processed_chunks(processed_chunks)
-                                self.logger.info(f"Created {len(chunks)} chunks for {file_path}")
-                            for i, chunk in enumerate(chunks):
-                                doc = Document(text=chunk, extra_info={"file_path": file_path, "chunk_id": i})
-                                docs.append(doc)
+                            pdf_content = self.extract_text_from_pdf(file_path)
+                            self.logger.info(f"Extracted text from {file_path}")
+                            chunks = self.chunk_text(pdf_content)
+                            processed_chunks[file_path] = {
+                                "chunks": chunks,
+                                "mod_time": current_mod_time
+                            }
+                            self.save_processed_chunks(processed_chunks)
+                            self.logger.info(f"Created {len(chunks)} chunks for {file_path}")
                         else:
                             chunks = processed_chunks[file_path]["chunks"]
                             self.logger.info(f"Loaded {len(chunks)} processed chunks for {file_path}")
-                            for i, chunk in enumerate(chunks):
-                                doc = Document(text=chunk, extra_info={"file_path": file_path, "chunk_id": i})
-                                docs.append(doc)
+                        for i, chunk in enumerate(chunks):
+                            doc = Document(text=chunk, extra_info={"file_path": file_path, "chunk_id": i})
+                            docs.append(doc)
                     except Exception as e:
                         self.logger.error(f"Error processing {file_path}: {e}")
         return docs
 
-    def extract_text_from_pdf(self, file):
-        extracted_text = extract_text(file)
+    def extract_text_from_pdf(self, file_path):
+        doc = fitz.open(file_path)
+        text = ""
+        for page_num in range(len(doc)):
+            page = doc.load_page(page_num)
+            text += page.get_text()
+        doc.close()
         self.logger.info("Extracted text from PDF")
-        return extracted_text
+        return text
 
     def chunk_text(self, text):
         words = word_tokenize(text)
