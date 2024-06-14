@@ -3,8 +3,13 @@ from auth.login import login
 from pages_app.rag import rag
 from pages_app.register import register
 from utils.calendar_dashboard import Calendar  # Import the Calendar class
+from pages_app.style import apply_custom_styles  # Import the apply_custom_styles function
 
 st.set_page_config(layout="wide")
+
+# Apply custom styles
+apply_custom_styles()
+
 # Initialize session state if it doesn't exist
 if 'page' not in st.session_state:
     st.session_state['page'] = 'login'
@@ -62,6 +67,5 @@ if st.session_state['logged_in']:
 
     if st.button("Logout"):
         logout()
-
 else:
     display_page()
