@@ -79,7 +79,7 @@ class Calendar:
                 'dayMaxEvents': True,  # allow "more" link when too many events
                 'eventColor': '#378006'
             })
-            st.write(calendar_component)
+            # st.write(calendar_component) this will show the info
 
         # Display upcoming events in the second column
         with col2:
@@ -91,7 +91,6 @@ class Calendar:
                     st.markdown(f"**Review Date of {event[0]}**: {event[2]}")
 
         self.close_connection()
-
 
 
 # Usage

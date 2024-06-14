@@ -71,8 +71,6 @@ def register():
         else:
             st.error("New username and password cannot be empty")
 
-    st.write("---")
-    st.button("Logout", key="logout_btn")
 
     st.write("---")
     st.write("## PDF Management")

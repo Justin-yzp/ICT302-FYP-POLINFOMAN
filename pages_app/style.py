@@ -1,7 +1,6 @@
 # pages_app/style.py
 
 import streamlit as st
-import base64
 
 
 def apply_custom_styles():
@@ -34,16 +33,12 @@ def apply_custom_styles():
     """, unsafe_allow_html=True)
 
     # Background image
-    with open("elements/background.jpg", "rb") as img_file:
-        b64_image = base64.b64encode(img_file.read()).decode()
-
-    st.markdown(f"""
-        <style>
-        body {{
-            background-image: url('data:image/jpg;base64,{b64_image}');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-        }}
-        </style>
-    """, unsafe_allow_html=True)
+    page_bg_img = '''
+    <style>
+    body {
+        background-image: url("https://raw.githubusercontent.com/Justin-yzp/ICT302-new/main/elements/background.jpg");
+        background-size: cover;
+    }
+    </style>
+    '''
+    st.markdown(page_bg_img, unsafe_allow_html=True)
