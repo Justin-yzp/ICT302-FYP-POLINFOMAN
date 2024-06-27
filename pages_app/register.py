@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import re
 from db.db_handler import add_user, get_all_users, update_user, delete_user
 from utils.pdf_reader import PDFReader
 
@@ -19,6 +20,20 @@ def load_pdf_status(pdf_dir, processed_chunks):
                 else:
                     unprocessed_pdfs.append(file)
     return processed_pdfs, unprocessed_pdfs
+
+def is_valid_password(password):
+    """Check if the password meets the criteria."""
+    if len(password) < 8:
+        return False
+    if not re.search(r"[A-Z]", password):
+        return False
+    if not re.search(r"[a-z]", password):
+        return False
+    if not re.search(r"[0-9]", password):
+        return False
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return False
+    return True
 
 def register():
     st.title("Admin User Management")
@@ -50,8 +65,11 @@ def register():
 
                 if st.button("Update User", key="update_user_btn"):
                     if new_username and new_password:
-                        update_user(user_id, new_username, new_password)
-                        st.success("User updated successfully")
+                        if is_valid_password(new_password):
+                            update_user(user_id, new_username, new_password)
+                            st.success("User updated successfully")
+                        else:
+                            st.error("Password must include uppercase, lowercase, number, and special character")
                     else:
                         st.error("Username and Password cannot be empty")
 
@@ -66,11 +84,13 @@ def register():
 
     if st.button("Add User", key="add_user_btn"):
         if new_user and new_user_password:
-            add_user(new_user, new_user_password)
-            st.success("New user added successfully")
+            if is_valid_password(new_user_password):
+                add_user(new_user, new_user_password)
+                st.success("New user added successfully")
+            else:
+                st.error("Password must include uppercase, lowercase, number, and special character")
         else:
             st.error("New username and password cannot be empty")
-
 
     st.write("---")
     st.write("## PDF Management")
@@ -103,7 +123,8 @@ def register():
                 f.write(uploaded_file.getbuffer())
             st.success(f"Uploaded {uploaded_file.name}")
             if st.button("Refresh Page", key="refresh_page_upload"):
-                st.experimental_rerun()
+
+                st.rerun()
 
         # Remove selected PDF
         st.write("### Remove PDF")
@@ -113,11 +134,13 @@ def register():
                 os.remove(os.path.join(pdf_dir, pdf_to_remove))
                 st.success(f"Removed {pdf_to_remove}")
                 if st.button("Refresh Page", key="refresh_page_remove"):
-                    st.experimental_rerun()
+
+                    st.rerun()
 
     # Display processed and unprocessed PDFs
     with col4:
         st.write("### Processed PDFs")
+
         if processed_pdfs:
             for pdf in processed_pdfs:
                 st.write(pdf)
@@ -134,7 +157,8 @@ def register():
         if st.button("Process All PDFs"):
             pdf_reader.load_data()
             st.success("Processed all PDFs.")
-            st.experimental_rerun()
+
+            st.rerun()
 
 if __name__ == "__main__":
     register()
