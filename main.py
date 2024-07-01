@@ -4,15 +4,17 @@ from pages_app.rag import rag
 from pages_app.register import register
 from utils.calendar_dashboard import Calendar  # Import the Calendar class
 from pages_app.style import apply_custom_styles  # Import the apply_custom_styles function
+from pages_app.welcome import welcome  # Import the welcome function
 
-st.set_page_config(layout="wide")
+# Uncomment to apply wide layout
+# st.set_page_config(layout="wide")
 
 # Apply custom styles
 apply_custom_styles()
 
 # Initialize session state if it doesn't exist
 if 'page' not in st.session_state:
-    st.session_state['page'] = 'login'
+    st.session_state['page'] = 'welcome'
 
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
@@ -24,13 +26,15 @@ if 'is_admin' not in st.session_state:
 def logout():
     st.session_state['logged_in'] = False
     st.session_state['username'] = ''
-    st.session_state['page'] = 'login'
+    st.session_state['page'] = 'welcome'
     st.session_state['is_admin'] = False
     st.rerun()
 
 # Function to display the appropriate page based on session state
 def display_page():
-    if st.session_state['page'] == 'login':
+    if st.session_state['page'] == 'welcome':
+        welcome()
+    elif st.session_state['page'] == 'login':
         login()
     elif st.session_state['page'] == 'dashboard':
         db_path = 'users.db'
@@ -65,7 +69,8 @@ if st.session_state['logged_in']:
     st.session_state['page'] = tab_map[selected_tab]
     display_page()
 
-    if st.button("Logout"):
+    # Logout button
+    if st.button("Logout", key="logout_btn"):
         logout()
 else:
     display_page()
