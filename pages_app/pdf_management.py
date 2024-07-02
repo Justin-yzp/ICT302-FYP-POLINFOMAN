@@ -23,13 +23,14 @@ def pdf_management():
         for pdf_file in pdf_files:
             st.write(pdf_file)
 
-        st.write("### Upload New PDF")
-        uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
-        if uploaded_file is not None:
-            with open(os.path.join(pdf_dir, uploaded_file.name), "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            st.success(f"Uploaded {uploaded_file.name}")
-            pdf_reader.load_data()  # Automatically process the uploaded PDF
+        st.write("### Upload New PDFs")
+        uploaded_files = st.file_uploader("Choose PDF files", type="pdf", accept_multiple_files=True)
+        if uploaded_files is not None:
+            for uploaded_file in uploaded_files:
+                with open(os.path.join(pdf_dir, uploaded_file.name), "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                st.success(f"Uploaded {uploaded_file.name}")
+                pdf_reader.load_data()  # Automatically process the uploaded PDF
             if st.button("Refresh Page", key="refresh_page_upload"):
                 st.rerun()
 
@@ -40,8 +41,7 @@ def pdf_management():
             if st.button("Remove PDF", key="remove_pdf_btn"):
                 os.remove(os.path.join(pdf_dir, pdf_to_remove))
                 st.success(f"Removed {pdf_to_remove}")
-                if st.button("Refresh Page", key="refresh_page_remove"):
-                    st.rerun()
+                st.rerun()  # Automatically refresh the page after removal
 
 if __name__ == "__main__":
     pdf_management()

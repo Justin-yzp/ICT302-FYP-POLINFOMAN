@@ -8,12 +8,28 @@ from utils.pdf_reader import PDFReader
 
 openai.api_key = st.secrets.openai_key
 
-def clear_cache():
-    if "cache_key" in st.session_state:
-        del st.session_state["cache_key"]
 
-def generate_cache_key(chunk_size, overlap_size):
-    return f"cache_{chunk_size}_{overlap_size}"
+def clear_all_cache():
+    # Clear session state
+    keys_to_clear = ["cache_key", "chat_engine", "chunk_size", "docs", "pdf_files"]
+    for key in keys_to_clear:
+        if key in st.session_state:
+            del st.session_state[key]
+
+    # Clear all st.cache_resource entries
+    st.cache_resource.clear()
+
+    # Clear all st.cache_data entries
+    st.cache_data.clear()
+
+
+def generate_cache_key(chunk_size, overlap_size, pdf_files):
+    return f"cache_{chunk_size}_{overlap_size}_{','.join(sorted(pdf_files))}"
+
+
+def get_pdf_files():
+    return [f for f in os.listdir("./pdfs") if f.endswith('.pdf')]
+
 
 @st.cache_resource(show_spinner=False)
 def load_data_with_chunk_size(chunk_size, overlap_size, cache_key):
@@ -32,6 +48,7 @@ def load_data_with_chunk_size(chunk_size, overlap_size, cache_key):
 
         return index, docs
 
+
 def rag():
     precision = st.radio("Select precision level:", ["Low", "Medium", "High"])
 
@@ -42,10 +59,20 @@ def rag():
     else:  # High precision
         chunk_size, overlap_size = 50, 5
 
-    cache_key = generate_cache_key(chunk_size, overlap_size)
+    # Get current PDF files
+    current_pdf_files = get_pdf_files()
 
-    if "cache_key" not in st.session_state or st.session_state.cache_key != cache_key:
-        clear_cache()
+    # Check if precision changed or if PDF files changed
+    if ("previous_precision" not in st.session_state or
+            st.session_state.previous_precision != precision or
+            "pdf_files" not in st.session_state or
+            set(st.session_state.pdf_files) != set(current_pdf_files)):
+        clear_all_cache()
+
+    st.session_state.previous_precision = precision
+    st.session_state.pdf_files = current_pdf_files
+
+    cache_key = generate_cache_key(chunk_size, overlap_size, current_pdf_files)
     st.session_state.cache_key = cache_key
 
     index, docs = load_data_with_chunk_size(chunk_size, overlap_size, cache_key)
@@ -73,7 +100,8 @@ def rag():
                     context_snippets.append((source_file, node.node.text))
 
                 st.session_state.messages.append(
-                    {"role": "assistant", "content": response.response, "sources": sources, "contexts": context_snippets})
+                    {"role": "assistant", "content": response.response, "sources": sources,
+                     "contexts": context_snippets})
             else:
                 st.session_state.messages.append({"role": "assistant", "content": response.response})
 
@@ -121,6 +149,7 @@ def rag():
                 '</div>',
                 unsafe_allow_html=True
             )
+
 
 if __name__ == '__main__':
     rag()
