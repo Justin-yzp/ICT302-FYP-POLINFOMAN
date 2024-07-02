@@ -12,7 +12,7 @@ class PDFReader:
         self.chunk_size = chunk_size
         self.overlap_size = overlap_size
         self.save_dir = save_dir
-        nltk.download('punkt')  # Download the punkt tokenizer for sentence splitting
+        nltk.download('punkt', quiet=True)  # Download the punkt tokenizer for sentence splitting
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
@@ -25,19 +25,19 @@ class PDFReader:
                     file_path = os.path.join(root, file)
                     try:
                         current_mod_time = os.path.getmtime(file_path)
-                        if file_path not in processed_chunks or processed_chunks[file_path][
-                            "mod_time"] < current_mod_time:
+                        cache_key = f"{file_path}_{self.chunk_size}_{self.overlap_size}"
+                        if cache_key not in processed_chunks or processed_chunks[cache_key]["mod_time"] < current_mod_time:
                             pdf_content = self.extract_text_from_pdf(file_path)
                             self.logger.info(f"Extracted text from {file_path}")
                             chunks = self.chunk_text(pdf_content)
-                            processed_chunks[file_path] = {
+                            processed_chunks[cache_key] = {
                                 "chunks": chunks,
                                 "mod_time": current_mod_time
                             }
                             self.save_processed_chunks(processed_chunks)
                             self.logger.info(f"Created {len(chunks)} chunks for {file_path}")
                         else:
-                            chunks = processed_chunks[file_path]["chunks"]
+                            chunks = processed_chunks[cache_key]["chunks"]
                             self.logger.info(f"Loaded {len(chunks)} processed chunks for {file_path}")
                         for i, chunk in enumerate(chunks):
                             doc = Document(text=chunk, extra_info={"file_path": file_path, "chunk_id": i})
