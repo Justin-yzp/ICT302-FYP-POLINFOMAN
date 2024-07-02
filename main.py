@@ -1,16 +1,20 @@
 import streamlit as st
+import base64
 from auth.login import login
 from pages_app.rag import rag
 from pages_app.register import register
-from utils.calendar_dashboard import Calendar  # Import the Calendar class
-from pages_app.style import apply_custom_styles  # Import the apply_custom_styles function
-from pages_app.welcome import welcome  # Import the welcome function
+from utils.calendar_dashboard import Calendar
+from pages_app.style import apply_custom_styles, set_background_image
+from pages_app.welcome import welcome
 
 # Uncomment to apply wide layout
 # st.set_page_config(layout="wide")
 
 # Apply custom styles
 apply_custom_styles()
+
+# Set background image
+set_background_image("https://images.unsplash.com/photo-1517218534291-6ac9e17835c1?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")
 
 # Initialize session state if it doesn't exist
 if 'page' not in st.session_state:

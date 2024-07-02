@@ -1,44 +1,44 @@
 # pages_app/style.py
-
+import base64
+import requests
 import streamlit as st
 
 
+def set_background_image(image_url):
+    response = requests.get(image_url)
+    encoded_string = base64.b64encode(response.content).decode()
+
+    st.markdown(
+        f"""
+    <style>
+    .stApp {{
+        background-image: url(data:image/{"png"};base64,{encoded_string});
+        background-size: cover;
+        background-attachment: fixed;
+    }}
+    /* Rest of your CSS styles */
+    </style>
+    """,
+        unsafe_allow_html=True
+    )
 def apply_custom_styles():
-    # Custom CSS
     st.markdown("""
         <style>
-        .custom-title {
-            font-size: 24px;
-            color: #ff6347;
-            text-align: center;
+        .stApp {
+            font-family: 'Arial', sans-serif;
         }
-        .custom-button {
-            background-color: #4CAF50; /* Green */
-            border: none;
+        .stButton > button {
+            color: #4F8BF9;
+            border-radius: 20px;
+            height: 3em;
+            width: 100%;
+        }
+        .stTextInput > div > div > input {
+            color: #4F8BF9;
+        }
+        .stMarkdown {
             color: white;
-            padding: 15px 32px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-        }
-        .custom-container {
-            background-color: #f2f2f2;
-            padding: 20px;
-            border-radius: 5px;
+            text-shadow: 1px 1px 2px black;
         }
         </style>
     """, unsafe_allow_html=True)
-
-    # Background image
-    page_bg_img = '''
-    <style>
-    body {
-        background-image: url("https://raw.githubusercontent.com/Justin-yzp/ICT302-new/main/elements/background.jpg");
-        background-size: cover;
-    }
-    </style>
-    '''
-    st.markdown(page_bg_img, unsafe_allow_html=True)
