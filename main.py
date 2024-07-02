@@ -14,7 +14,7 @@ from pages_app.welcome import welcome
 apply_custom_styles()
 
 # Set background image
-set_background_image("https://images.unsplash.com/photo-1517218534291-6ac9e17835c1?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")
+set_background_image("https://raw.githubusercontent.com/Justin-yzp/ICT302-new/main/images/background.jpg")
 
 # Initialize session state if it doesn't exist
 if 'page' not in st.session_state:
