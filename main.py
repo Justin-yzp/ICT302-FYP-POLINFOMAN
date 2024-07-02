@@ -6,6 +6,7 @@ from pages_app.register import register
 from utils.calendar_dashboard import Calendar
 from pages_app.style import apply_custom_styles, set_background_image
 from pages_app.welcome import welcome
+from pages_app.about import about
 
 # Uncomment to apply wide layout
 # st.set_page_config(layout="wide")
@@ -53,6 +54,8 @@ def display_page():
         rag()
     elif st.session_state['page'] == 'register' and st.session_state['is_admin']:
         register()
+    elif st.session_state['page'] == 'about':
+        about()
 
 # Display the appropriate page
 if st.session_state['logged_in']:
