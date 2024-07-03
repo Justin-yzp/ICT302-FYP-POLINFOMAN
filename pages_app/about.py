@@ -38,6 +38,4 @@ def about():
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("Back to Welcome"):
-        st.session_state['page'] = 'welcome'
-        st.rerun()
+

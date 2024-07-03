@@ -1,5 +1,4 @@
 import streamlit as st
-import base64
 from auth.login import login
 from pages_app.rag import rag
 from pages_app.register import register
@@ -7,9 +6,6 @@ from utils.calendar_dashboard import Calendar
 from pages_app.style import apply_custom_styles, set_background_image
 from pages_app.welcome import welcome
 from pages_app.about import about
-
-# Uncomment to apply wide layout
-# st.set_page_config(layout="wide")
 
 # Apply custom styles
 apply_custom_styles()
@@ -27,7 +23,7 @@ if 'logged_in' not in st.session_state:
 if 'is_admin' not in st.session_state:
     st.session_state['is_admin'] = False
 
-# Logout button
+# Logout function
 def logout():
     st.session_state['logged_in'] = False
     st.session_state['username'] = ''
@@ -37,47 +33,59 @@ def logout():
 
 # Function to display the appropriate page based on session state
 def display_page():
-    if st.session_state['page'] == 'welcome':
-        welcome()
-    elif st.session_state['page'] == 'login':
-        login()
-    elif st.session_state['page'] == 'dashboard':
-        db_path = 'users.db'
-        cal = Calendar(db_path)
-        cal.display_calendar()  # Display the calendar page
-    elif st.session_state['page'] == 'rag':
-        st.title("RAG Retrieval Augmented Generation")
-        if "messages" not in st.session_state:
-            st.session_state.messages = [
-                {"role": "assistant", "content": "Ask me a question about university documents!"}
-            ]
-        rag()
-    elif st.session_state['page'] == 'register' and st.session_state['is_admin']:
-        register()
-    elif st.session_state['page'] == 'about':
-        about()
+    pages = {
+        'welcome': welcome,
+        'login': login,
+        'dashboard': lambda: display_calendar('users.db'),
+        'rag': rag,
+        'register': register,
+        'about': about
+    }
+    page_function = pages.get(st.session_state['page'])
+    if page_function:
+        page_function()
+
+# Function to display calendar page
+def display_calendar(db_path):
+    cal = Calendar(db_path)
+    cal.display_calendar()
+
+# Sidebar navigation items
+sidebar_items_logged_out = {
+    '🏠 Welcome': 'welcome',
+    '🔒 Login': 'login',
+    '📘 About': 'about'
+}
+
+sidebar_items_logged_in = {
+    '🏠 Welcome': 'welcome',
+    '📅 Dashboard': 'dashboard',
+    '🔍 RAG': 'rag',
+    '📝 Register': 'register',
+    '📘 About': 'about'
+
+}
+
+sidebar_items = sidebar_items_logged_out if not st.session_state['logged_in'] else sidebar_items_logged_in
+
+# Display sidebar for navigation with emojis
+selected_page = st.sidebar.radio("Navigation", list(sidebar_items.keys()))
+
+# Update session state based on selected page
+if selected_page == 'Logout':
+    logout()
+else:
+    st.session_state['page'] = sidebar_items[selected_page]
 
 # Display the appropriate page
 if st.session_state['logged_in']:
-    st.write(f"Logged in as {st.session_state['username']}")
-
-    # Create navigation tabs
-    tab_map = {
-        'Dashboard': 'dashboard',
-        'RAG': 'rag'
-    }
-
-    if st.session_state['is_admin']:
-        tab_map['Register'] = 'register'
-
-    selected_tab = st.selectbox("Navigation", list(tab_map.keys()))
-
-    # Update session state based on selected tab
-    st.session_state['page'] = tab_map[selected_tab]
-    display_page()
-
-    # Logout button
-    if st.button("Logout", key="logout_btn"):
-        logout()
+    st.sidebar.write(f"Logged in as {st.session_state['username']}")  # Display login status in the sidebar
 else:
-    display_page()
+    st.sidebar.write("Not Logged in")
+
+display_page()
+
+# Add logout button at the bottom of the sidebar
+if st.session_state['logged_in']:
+    st.sidebar.markdown('---')
+    st.sidebar.button("Logout", key="logout_btn", on_click=logout)

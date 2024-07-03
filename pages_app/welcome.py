@@ -17,15 +17,5 @@ def welcome():
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("Go to Login"):
-            st.session_state['page'] = 'login'
-            st.rerun()
-    with col2:
-        if st.button("About"):
-            st.session_state['page'] = 'about'
-            st.rerun()
-
 if __name__ == "__main__":
     welcome()

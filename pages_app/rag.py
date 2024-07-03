@@ -5,7 +5,6 @@ import openai
 from llama_index.llms.openai import OpenAI
 from llama_index.core import Settings, VectorStoreIndex, Document
 from utils.pdf_reader import PDFReader
-
 openai.api_key = st.secrets.openai_key
 
 
