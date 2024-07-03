@@ -5,12 +5,21 @@ import openai
 from llama_index.llms.openai import OpenAI
 from llama_index.core import Settings, VectorStoreIndex, Document
 from utils.pdf_reader import PDFReader
+
 openai.api_key = st.secrets.openai_key
+
+
+def clear_specific_cache():
+    # Clear specific session state items
+    keys_to_clear = ["cache_key", "chat_engine", "previous_response"]
+    for key in keys_to_clear:
+        if key in st.session_state:
+            del st.session_state[key]
 
 
 def clear_all_cache():
     # Clear session state
-    keys_to_clear = ["cache_key", "chat_engine", "chunk_size", "docs", "pdf_files"]
+    keys_to_clear = ["cache_key", "chat_engine", "chunk_size", "docs", "pdf_files", "previous_response"]
     for key in keys_to_clear:
         if key in st.session_state:
             del st.session_state[key]
@@ -81,12 +90,13 @@ def rag():
         st.session_state.chunk_size = chunk_size
         st.session_state.docs = docs
 
-    if prompt := st.text_input("Your question"):
-        st.session_state.messages = [{"role": "user", "content": prompt}]
+    prompt = st.text_input("Your question")
+    if prompt:
+        # Clear specific cache items when a new question is asked
+        clear_specific_cache()
 
-    if st.session_state.messages[-1]["role"] != "assistant":
         with st.spinner("Thinking..."):
-            response = st.session_state.chat_engine.chat(st.session_state.messages[-1]["content"])
+            response = index.as_chat_engine(chat_mode="condense_question", verbose=True).chat(prompt)
             source_nodes = response.source_nodes
             if source_nodes:
                 sources = []
@@ -98,17 +108,21 @@ def rag():
                         sources.append(source_file)
                     context_snippets.append((source_file, node.node.text))
 
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": response.response, "sources": sources,
-                     "contexts": context_snippets})
+                st.session_state.previous_response = {
+                    "content": response.response,
+                    "sources": sources,
+                    "contexts": context_snippets
+                }
             else:
-                st.session_state.messages.append({"role": "assistant", "content": response.response})
+                st.session_state.previous_response = {
+                    "content": response.response
+                }
 
     col1, col2 = st.columns([1, 2])
 
     with col1:
-        if st.session_state.messages[-1]["role"] == "assistant" and "sources" in st.session_state.messages[-1]:
-            sources = st.session_state.messages[-1]["sources"]
+        if 'previous_response' in st.session_state and "sources" in st.session_state.previous_response:
+            sources = st.session_state.previous_response["sources"]
             if sources:
                 st.markdown(
                     f'<div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">'
@@ -131,23 +145,24 @@ def rag():
                 download_files()
 
     with col2:
-        st.markdown(
-            '<div style="background-color: #f9f9f9; padding: 10px; border-radius: 5px;">'
-            f'{st.session_state.messages[-1]["content"]}'
-            '</div>',
-            unsafe_allow_html=True
-        )
-
-        if "contexts" in st.session_state.messages[-1]:
+        if 'previous_response' in st.session_state:
             st.markdown(
-                '<div style="background-color: #e9e9e9; padding: 10px; border-radius: 5px;">'
-                '<strong>Context Snippets:</strong>'
-                '<ul>'
-                f'{"".join([f"<li><strong>{source}:</strong> {context}</li>" for source, context in st.session_state.messages[-1]["contexts"]])}'
-                '</ul>'
+                '<div style="background-color: #f9f9f9; padding: 10px; border-radius: 5px;">'
+                f'{st.session_state.previous_response["content"]}'
                 '</div>',
                 unsafe_allow_html=True
             )
+
+            if "contexts" in st.session_state.previous_response:
+                st.markdown(
+                    '<div style="background-color: #e9e9e9; padding: 10px; border-radius: 5px;">'
+                    '<strong>Context Snippets:</strong>'
+                    '<ul>'
+                    f'{"".join([f"<li><strong>{source}:</strong> {context}</li>" for source, context in st.session_state.previous_response["contexts"]])}'
+                    '</ul>'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
 
 
 if __name__ == '__main__':

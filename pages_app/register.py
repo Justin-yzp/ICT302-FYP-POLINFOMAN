@@ -3,7 +3,7 @@ from pages_app.admin_user_management import admin_user_management
 from pages_app.pdf_management import pdf_management
 
 def register():
-    st.title("Welcome to the Application")
+    st.title("Welcome to the Admin Panel")
     st.write("Please select an option to proceed.")
 
     col1 = st.empty()  # Use a single column for admin functions
@@ -12,9 +12,9 @@ def register():
         st.subheader("Admin Functions")
 
         # Dropdown menu for admin functions
-        admin_function = st.selectbox("Select an admin function", ["Select", "Admin User Management", "PDF Management"])
+        admin_function = st.selectbox("Select an admin function", ["Select", "User Management", "PDF Management"])
 
-        if admin_function == "Admin User Management":
+        if admin_function == "User Management":
             st.session_state['page'] = 'admin_user_management'
         elif admin_function == "PDF Management":
             st.session_state['page'] = 'pdf_management'

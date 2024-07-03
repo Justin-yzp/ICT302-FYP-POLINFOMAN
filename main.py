@@ -29,7 +29,6 @@ def logout():
     st.session_state['username'] = ''
     st.session_state['page'] = 'welcome'
     st.session_state['is_admin'] = False
-    st.rerun()
 
 # Function to display the appropriate page based on session state
 def display_page():
@@ -43,7 +42,10 @@ def display_page():
     }
     page_function = pages.get(st.session_state['page'])
     if page_function:
-        page_function()
+        if st.session_state['page'] == 'register' and not st.session_state['is_admin']:
+            st.error("You do not have permission to access this page.")
+        else:
+            page_function()
 
 # Function to display calendar page
 def display_calendar(db_path):
@@ -61,10 +63,12 @@ sidebar_items_logged_in = {
     '🏠 Welcome': 'welcome',
     '📅 Dashboard': 'dashboard',
     '🔍 RAG': 'rag',
-    '📝 Register': 'register',
     '📘 About': 'about'
-
 }
+
+# Add Register option only for admin users
+if st.session_state['is_admin']:
+    sidebar_items_logged_in['📝 Admin Panel'] = 'register'
 
 sidebar_items = sidebar_items_logged_out if not st.session_state['logged_in'] else sidebar_items_logged_in
 
@@ -72,14 +76,13 @@ sidebar_items = sidebar_items_logged_out if not st.session_state['logged_in'] el
 selected_page = st.sidebar.radio("Navigation", list(sidebar_items.keys()))
 
 # Update session state based on selected page
-if selected_page == 'Logout':
-    logout()
-else:
-    st.session_state['page'] = sidebar_items[selected_page]
+st.session_state['page'] = sidebar_items[selected_page]
 
 # Display the appropriate page
 if st.session_state['logged_in']:
     st.sidebar.write(f"Logged in as {st.session_state['username']}")  # Display login status in the sidebar
+    if st.session_state['is_admin']:
+        st.sidebar.write("(Admin)")
 else:
     st.sidebar.write("Not Logged in")
 
@@ -88,4 +91,6 @@ display_page()
 # Add logout button at the bottom of the sidebar
 if st.session_state['logged_in']:
     st.sidebar.markdown('---')
-    st.sidebar.button("Logout", key="logout_btn", on_click=logout)
+    if st.sidebar.button("Logout", key="logout_btn"):
+        logout()
+        st.rerun()

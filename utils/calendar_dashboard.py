@@ -1,8 +1,9 @@
 import streamlit as st
 from streamlit_calendar import calendar
 import sqlite3
-from datetime import datetime, timedelta
 import os
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 class Calendar:
@@ -49,9 +50,44 @@ class Calendar:
                 })
         return calendar_events
 
+    def fetch_pdfs_from_directory(self, directory='pdfs'):
+        pdf_files = []
+        if os.path.exists(directory) and os.path.isdir(directory):
+            pdf_files = [f for f in os.listdir(directory) if f.endswith('.pdf')]
+        return pdf_files
+
     def close_connection(self):
         self.conn.close()
 
+    def display_random_bar_chart(self):
+        # Generate random data
+        categories = ['A', 'B', 'C', 'D', 'E']
+        values = np.random.randint(1, 100, size=5)
+
+        # Create the bar chart with a transparent background
+        fig, ax = plt.subplots(facecolor='none')
+        bars = ax.bar(categories, values, color=(0, 0, 0, 0.6))  # Semi-transparent black bars
+
+        # Customize the chart
+        ax.set_facecolor('none')  # Transparent axes background
+        ax.set_ylabel('Values', color=(0, 0, 0, 1))  # Solid black for ylabel
+        ax.set_title('Random Bar Chart', color=(0, 0, 0, 1))  # Solid black for title
+        ax.tick_params(colors=(0, 0, 0, 1))  # Solid black for tick labels
+
+        # Add value labels on top of each bar
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width() / 2., height,
+                    f'{height}',
+                    ha='center', va='bottom', color=(0, 0, 0, 1))  # Solid black for text
+
+        # Make the spines (axis lines) black
+        for spine in ax.spines.values():
+            spine.set_color((0, 0, 0, 1))  # Solid black for spines
+
+        # Adjust layout and display the chart
+        plt.tight_layout()
+        st.pyplot(fig, transparent=True)
     def display_calendar(self):
         all_dates = self.fetch_all_dates()
         upcoming_events = self.fetch_upcoming_events()
@@ -60,13 +96,38 @@ class Calendar:
         # Streamlit UI
         st.title('Governance Calendar')
 
-        # Create columns for the calendar and upcoming events
-        col1, col2 = st.columns([2, 1])  # Calendar takes up 2/3 of the space
+        # Define layout columns
+        col1, col2 = st.columns([3, 1])  # Adjusted column width
 
-        # Calendar visualization
+        # Left panel for placeholder (future graphs)
         with col1:
-            st.write("### Calendar with Important Dates")
-            # Create and display the calendar
+            st.write("### Sample Bar Chart")
+            self.display_random_bar_chart()
+
+        # Right panel for PDF listing
+        with col2:
+            st.title('PDF Files')
+            pdf_files = self.fetch_pdfs_from_directory()
+            for pdf_file in pdf_files:
+                st.markdown(f"- {pdf_file}")
+
+        # Horizontal line for separation
+        st.markdown("---")
+
+        # Centered container for Upcoming Events
+        st.title('Upcoming Events')
+        for event in upcoming_events:
+            if event[1]:  # date_effective
+                st.markdown(f"**Effective Date of {event[0]}**: {event[1]}")
+            if event[2]:  # review_date
+                st.markdown(f"**Review Date of {event[0]}**: {event[2]}")
+
+        # Horizontal line for separation
+        st.markdown("---")
+
+        # Centered container for Calendar
+        st.title('Calendar with Important Dates')
+        try:
             calendar_component = calendar(events=calendar_events, options={
                 'headerToolbar': {
                     'left': 'prev,next today',
@@ -74,26 +135,19 @@ class Calendar:
                     'right': 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
                 'initialView': 'dayGridMonth',
-                'navLinks': True,  # can click day/week names to navigate views
+                'navLinks': True,
                 'editable': True,
-                'dayMaxEvents': True,  # allow "more" link when too many events
+                'dayMaxEvents': True,
                 'eventColor': '#378006'
             })
-            # st.write(calendar_component) this will show the info
-
-        # Display upcoming events in the second column
-        with col2:
-            st.title('Upcoming Events')
-            for event in upcoming_events:
-                if event[1]:  # date_effective
-                    st.markdown(f"**Effective Date of {event[0]}**: {event[1]}")
-                if event[2]:  # review_date
-                    st.markdown(f"**Review Date of {event[0]}**: {event[2]}")
+            # st.write(calendar_component)
+        except Exception as e:
+            st.error(f"Error rendering calendar: {str(e)}")
 
         self.close_connection()
 
 
 # Usage
-
-cal = Calendar()
-cal.display_calendar()
+if __name__ == "__main__":
+    cal = Calendar()
+    cal.display_calendar()

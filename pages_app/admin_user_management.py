@@ -17,7 +17,7 @@ def is_valid_password(password):
     return True
 
 def admin_user_management():
-    st.title("Admin User Management")
+    st.title("User Management")
     st.write("---")
 
     users = get_all_users()
