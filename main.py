@@ -62,7 +62,7 @@ sidebar_items_logged_out = {
 sidebar_items_logged_in = {
     '🏠 Welcome': 'welcome',
     '📅 Dashboard': 'dashboard',
-    '🔍 RAG': 'rag',
+    '🔍 Chat with documents': 'rag',
     '📘 About': 'about'
 }
 
