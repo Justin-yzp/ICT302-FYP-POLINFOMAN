@@ -58,6 +58,17 @@ def load_data_with_chunk_size(chunk_size, overlap_size, cache_key):
 
 
 def rag():
+    st.title("University Document Library")
+    st.markdown(
+        """
+        <div style="background-color: rgba(233, 233, 233, 0.4); padding: 15px; border-radius: 10px; margin-bottom: 20px; backdrop-filter: blur(10px);">
+        <h3 style="text-align: center;">Welcome to the University Document Library</h3>
+        <p style="text-align: center;">
+            Use this tool to search through university documents and get precise answers to your questions.
+        </p>
+        </div>
+        """, unsafe_allow_html=True)
+
     precision = st.radio("Select precision level:", ["Low", "Medium", "High"])
 
     if precision == "Low":
@@ -89,6 +100,14 @@ def rag():
         st.session_state.chat_engine = index.as_chat_engine(chat_mode="condense_question", verbose=True)
         st.session_state.chunk_size = chunk_size
         st.session_state.docs = docs
+
+    st.markdown(
+        """
+        <div style="background-color: rgba(233, 233, 233, 0.4); padding: 15px; border-radius: 10px; margin-bottom: 20px; backdrop-filter: blur(10px);">
+        <h4>Ask a Question</h4>
+        <p>Enter your question below and get answers based on the university documents.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     prompt = st.text_input("Your question")
     if prompt:
