@@ -3,12 +3,39 @@ from streamlit_calendar import calendar
 import sqlite3
 import os
 import matplotlib.pyplot as plt
-import numpy as np
+import sys
+from streamlit_modal import Modal
 
+
+# Add the utils folder to the Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
+
+# Import the categorize_pdfs function
+from categorize_pdfs import categorize_pdfs
 
 class Calendar:
-    def __init__(self, db_path='users.db'):
+    def __init__(self, db_path='users.db', categories_file='categorized_pdfs.txt'):
         self.conn = sqlite3.connect(db_path)
+        self.categories_file = categories_file
+        self.categories = self.load_categories()
+        if not self.categories:
+            self.update_categories()
+
+    def load_categories(self):
+        if os.path.exists(self.categories_file):
+            with open(self.categories_file, 'r') as f:
+                categories = {}
+                current_category = None
+                for line in f:
+                    line = line.strip()
+                    if line.endswith(':'):
+                        current_category = line[:-1]
+                        categories[current_category] = []
+                    elif line.startswith('- ') and current_category:
+                        pdf_name = line[2:]
+                        categories[current_category].append(pdf_name)
+                return categories
+        return None
 
     def fetch_all_dates(self):
         cursor = self.conn.cursor()
@@ -59,19 +86,33 @@ class Calendar:
     def close_connection(self):
         self.conn.close()
 
-    def display_random_bar_chart(self):
-        # Generate random data
-        categories = ['A', 'B', 'C', 'D', 'E']
-        values = np.random.randint(1, 100, size=5)
+    def update_categories(self):
+        try:
+            categorize_pdfs()
+            self.categories = self.load_categories()
+            if self.categories:
+                st.success('Dashboard updated successfully!')
+            else:
+                st.error('Failed to load categories after update.')
+        except Exception as e:
+            st.error(f"Error updating categories: {str(e)}")
+            self.categories = {}
 
-        # Create the bar chart with a transparent background
+    def display_category_bar_chart(self):
+        if not self.categories:
+            st.warning("No categories available. Please update the dashboard.")
+            return
+
+        category_counts = {category: len(pdfs) for category, pdfs in self.categories.items()}
+        categories = list(category_counts.keys())
+        values = list(category_counts.values())
+
         fig, ax = plt.subplots(facecolor='none')
         bars = ax.bar(categories, values, color=(0, 0, 0, 0.6))  # Semi-transparent black bars
 
-        # Customize the chart
         ax.set_facecolor('none')  # Transparent axes background
-        ax.set_ylabel('Values', color=(0, 0, 0, 1))  # Solid black for ylabel
-        ax.set_title('Random Bar Chart', color=(0, 0, 0, 1))  # Solid black for title
+        ax.set_ylabel('Number of PDFs', color=(0, 0, 0, 1))  # Solid black for ylabel
+        ax.set_title('PDFs by Category', color=(0, 0, 0, 1))  # Solid black for title
         ax.tick_params(colors=(0, 0, 0, 1))  # Solid black for tick labels
 
         # Add value labels on top of each bar
@@ -85,47 +126,50 @@ class Calendar:
         for spine in ax.spines.values():
             spine.set_color((0, 0, 0, 1))  # Solid black for spines
 
-        # Adjust layout and display the chart
+        plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
         st.pyplot(fig, transparent=True)
+
     def display_calendar(self):
         all_dates = self.fetch_all_dates()
         upcoming_events = self.fetch_upcoming_events()
         calendar_events = self.prepare_data_for_calendar(all_dates)
 
-        # Streamlit UI
         st.title('Governance Calendar')
 
-        # Define layout columns
-        col1, col2 = st.columns([3, 1])  # Adjusted column width
+        # Add update dashboard button
+        if st.button('Update Dashboard'):
+            self.update_categories()
 
-        # Left panel for placeholder (future graphs)
+        col1, col2 = st.columns([5, 2])
+
         with col1:
-            st.write("### Sample Bar Chart")
-            self.display_random_bar_chart()
+            st.write("### PDFs by Category")
+            self.display_category_bar_chart()
 
-        # Right panel for PDF listing
         with col2:
             st.title('PDF Files')
-            pdf_files = self.fetch_pdfs_from_directory()
-            for pdf_file in pdf_files:
-                st.markdown(f"- {pdf_file}")
+            with st.container():
+                for category, pdf_files in self.categories.items():
+                    with st.expander(category):
+                        for pdf_file in pdf_files:
+                            # Display PDF file name without extension
+                            pdf_name = os.path.splitext(pdf_file)[0]
+                            st.write(pdf_name)  # Display the PDF name
+                            # Optionally, you can add a line break after each name
+                            # st.write("")  # Empty line for spacing
 
-        # Horizontal line for separation
         st.markdown("---")
 
-        # Centered container for Upcoming Events
         st.title('Upcoming Events')
         for event in upcoming_events:
             if event[1]:  # date_effective
-                st.markdown(f"**Effective Date of {event[0]}**: {event[1]}")
+                st.markdown(f"**Effective Date of {os.path.splitext(event[0])[0]}**: {event[1].split()[0]}")
             if event[2]:  # review_date
-                st.markdown(f"**Review Date of {event[0]}**: {event[2]}")
+                st.markdown(f"**Review Date of {os.path.splitext(event[0])[0]}**: {event[2].split()[0]}")
 
-        # Horizontal line for separation
         st.markdown("---")
 
-        # Centered container for Calendar
         st.title('Calendar with Important Dates')
         try:
             calendar_component = calendar(events=calendar_events, options={
