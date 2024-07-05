@@ -130,7 +130,12 @@ def main():
         # Close the database connection
         conn.close()
 
-        # Return failed PDFs list
+        # Write failed PDFs to a file
+        failed_pdfs_file = os.path.join(root_path, 'failed_pdfs.txt')
+        with open(failed_pdfs_file, 'w') as f:
+            for file in failed_files:
+                f.write(f"{file}\n")
+
         return failed_files
 
     except Exception as e:

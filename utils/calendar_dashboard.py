@@ -6,20 +6,35 @@ import matplotlib.pyplot as plt
 import sys
 from streamlit_modal import Modal
 
-
 # Add the utils folder to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
 
 # Import the categorize_pdfs function
 from categorize_pdfs import categorize_pdfs
+from pdf_date_extract import main as process_pdfs_main
+
 
 class Calendar:
-    def __init__(self, db_path='users.db', categories_file='categorized_pdfs.txt'):
+    def __init__(self, db_path='users.db', categories_file='categorized_pdfs.txt', failed_pdfs_file='failed_pdfs.txt'):
         self.conn = sqlite3.connect(db_path)
         self.categories_file = categories_file
+        self.failed_pdfs_file = failed_pdfs_file
         self.categories = self.load_categories()
+        self.failed_pdfs = self.load_failed_pdfs()
         if not self.categories:
             self.update_categories()
+
+        # Initialize session state for pagination
+        if 'events_page' not in st.session_state:
+            st.session_state.events_page = 0
+        if 'failed_pdfs_page' not in st.session_state:
+            st.session_state.failed_pdfs_page = 0
+
+    def load_failed_pdfs(self):
+        if os.path.exists(self.failed_pdfs_file):
+            with open(self.failed_pdfs_file, 'r') as f:
+                return [line.strip() for line in f.readlines()]
+        return []
 
     def load_categories(self):
         if os.path.exists(self.categories_file):
@@ -91,11 +106,20 @@ class Calendar:
             categorize_pdfs()
             self.categories = self.load_categories()
             if self.categories:
-                st.success('Dashboard updated successfully!')
+                st.success('Categories updated successfully!')
             else:
                 st.error('Failed to load categories after update.')
+
+            # Run the process_pdfs_main function
+            process_pdfs_main()
+            # Reload the failed PDFs
+            self.failed_pdfs = self.load_failed_pdfs()
+            if self.failed_pdfs:
+                st.warning(f"Failed to process {len(self.failed_pdfs)} PDFs.")
+            else:
+                st.success('All PDFs processed successfully!')
         except Exception as e:
-            st.error(f"Error updating categories: {str(e)}")
+            st.error(f"Error updating categories and processing PDFs: {str(e)}")
             self.categories = {}
 
     def display_category_bar_chart(self):
@@ -131,15 +155,7 @@ class Calendar:
         st.pyplot(fig, transparent=True)
 
     def display_calendar(self):
-        all_dates = self.fetch_all_dates()
-        upcoming_events = self.fetch_upcoming_events()
-        calendar_events = self.prepare_data_for_calendar(all_dates)
-
         st.title('Governance Calendar')
-
-        # Add update dashboard button
-        if st.button('Update Dashboard'):
-            self.update_categories()
 
         col1, col2 = st.columns([5, 2])
 
@@ -149,24 +165,83 @@ class Calendar:
 
         with col2:
             st.title('PDF Files')
-            with st.container():
-                for category, pdf_files in self.categories.items():
-                    with st.expander(category):
-                        for pdf_file in pdf_files:
-                            # Display PDF file name without extension
-                            pdf_name = os.path.splitext(pdf_file)[0]
-                            st.write(pdf_name)  # Display the PDF name
-                            # Optionally, you can add a line break after each name
-                            # st.write("")  # Empty line for spacing
+            selected_category = st.selectbox("Select a category", list(self.categories.keys()))
+
+            # Add update dashboard button right below the dropdown
+            if st.button('Update Dashboard'):
+                self.update_categories()
+                st.rerun()  # This will rerun the entire app
+
+        # Fetch data after potential update
+        all_dates = self.fetch_all_dates()
+        upcoming_events = self.fetch_upcoming_events()
+        calendar_events = self.prepare_data_for_calendar(all_dates)
 
         st.markdown("---")
 
-        st.title('Upcoming Events')
-        for event in upcoming_events:
-            if event[1]:  # date_effective
-                st.markdown(f"**Effective Date of {os.path.splitext(event[0])[0]}**: {event[1].split()[0]}")
-            if event[2]:  # review_date
-                st.markdown(f"**Review Date of {os.path.splitext(event[0])[0]}**: {event[2].split()[0]}")
+        # New section for displaying PDF files
+        if selected_category:
+            st.write(f"### PDFs in {selected_category}")
+            pdf_cols = st.columns(3)  # Create 3 columns for PDF names
+            for i, pdf_file in enumerate(self.categories[selected_category]):
+                pdf_name = os.path.splitext(pdf_file)[0]
+                pdf_cols[i % 3].write(pdf_name)
+
+        st.markdown("---")
+
+        # Display upcoming events and failed PDFs side by side with pagination
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader('Upcoming Events')
+            events_per_page = 2
+            total_events = len(upcoming_events)
+            max_events_page = (total_events - 1) // events_per_page
+
+            start_idx = st.session_state.events_page * events_per_page
+            end_idx = min(start_idx + events_per_page, total_events)
+
+            for event in upcoming_events[start_idx:end_idx]:
+                if event[1]:  # date_effective
+                    st.write(f"**Effective Date of {os.path.splitext(event[0])[0]}**: {event[1].split()[0]}")
+                if event[2]:  # review_date
+                    st.write(f"**Review Date of {os.path.splitext(event[0])[0]}**: {event[2].split()[0]}")
+
+            col1_1, col1_2 = st.columns(2)
+            with col1_1:
+                if st.button('Previous Events', key='prev_events', disabled=st.session_state.events_page == 0):
+                    st.session_state.events_page = max(0, st.session_state.events_page - 1)
+                    st.rerun()  # Rerun to update the display
+            with col1_2:
+                if st.button('Next Events', key='next_events',
+                             disabled=st.session_state.events_page == max_events_page):
+                    st.session_state.events_page = min(max_events_page, st.session_state.events_page + 1)
+                    st.rerun()  # Rerun to update the display
+
+        with col2:
+            st.subheader('Outdated PDF Format')
+            pdfs_per_page = 5
+            total_pdfs = len(self.failed_pdfs)
+            max_pdfs_page = (total_pdfs - 1) // pdfs_per_page
+
+            start_idx = st.session_state.failed_pdfs_page * pdfs_per_page
+            end_idx = min(start_idx + pdfs_per_page, total_pdfs)
+
+            if self.failed_pdfs:
+                for pdf in self.failed_pdfs[start_idx:end_idx]:
+                    st.write(f"- {pdf}")
+            else:
+                st.write("No PDFs failed to process.")
+
+            col2_1, col2_2 = st.columns(2)
+            with col2_1:
+                if st.button('Previous PDFs', key='prev_pdfs', disabled=st.session_state.failed_pdfs_page == 0):
+                    st.session_state.failed_pdfs_page = max(0, st.session_state.failed_pdfs_page - 1)
+                    st.rerun()  # Rerun to update the display
+            with col2_2:
+                if st.button('Next PDFs', key='next_pdfs', disabled=st.session_state.failed_pdfs_page == max_pdfs_page):
+                    st.session_state.failed_pdfs_page = min(max_pdfs_page, st.session_state.failed_pdfs_page + 1)
+                    st.rerun()  # Rerun to update the display
 
         st.markdown("---")
 
