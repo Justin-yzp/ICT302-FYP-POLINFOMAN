@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import streamlit as st
 from streamlit_calendar import calendar
 import sqlite3
@@ -5,6 +7,9 @@ import os
 import matplotlib.pyplot as plt
 import sys
 from streamlit_modal import Modal
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 # Add the utils folder to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
@@ -63,8 +68,6 @@ class Calendar:
         cursor.execute('''
         SELECT file_name, date_effective, review_date
         FROM Governance
-        WHERE (strftime('%Y-%m-%d', date_effective) >= strftime('%Y-%m-%d', 'now')) 
-           OR (strftime('%Y-%m-%d', review_date) >= strftime('%Y-%m-%d', 'now'))
         ''')
         upcoming_events = cursor.fetchall()
         return upcoming_events
@@ -118,11 +121,16 @@ class Calendar:
                 st.warning(f"Failed to process {len(self.failed_pdfs)} PDFs.")
             else:
                 st.success('All PDFs processed successfully!')
+
+            # Fetch updated dates after processing PDFs
+            self.fetch_all_dates()
+            self.fetch_upcoming_events()
+
         except Exception as e:
             st.error(f"Error updating categories and processing PDFs: {str(e)}")
             self.categories = {}
 
-    def display_category_bar_chart(self):
+    def display_category_pie_chart(self):
         if not self.categories:
             st.warning("No categories available. Please update the dashboard.")
             return
@@ -131,37 +139,53 @@ class Calendar:
         categories = list(category_counts.keys())
         values = list(category_counts.values())
 
-        fig, ax = plt.subplots(facecolor='none')
-        bars = ax.bar(categories, values, color=(0, 0, 0, 0.6))  # Semi-transparent black bars
+        fig, ax = plt.subplots(figsize=(10, 8), facecolor='none')
 
-        ax.set_facecolor('none')  # Transparent axes background
-        ax.set_ylabel('Number of PDFs', color=(0, 0, 0, 1))  # Solid black for ylabel
-        ax.set_title('PDFs by Category', color=(0, 0, 0, 1))  # Solid black for title
-        ax.tick_params(colors=(0, 0, 0, 1))  # Solid black for tick labels
+        # Define colors
+        colors = ['#8e44ad', '#e74c3c', '#3498db', '#2ecc71', '#f39c12']
 
-        # Add value labels on top of each bar
-        for bar in bars:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width() / 2., height,
-                    f'{height}',
-                    ha='center', va='bottom', color=(0, 0, 0, 1))  # Solid black for text
+        # Create pie chart
+        wedges, texts, autotexts = ax.pie(values, labels=None, autopct='%1.1f%%',
+                                          startangle=90, colors=colors, pctdistance=0.85)
 
-        # Make the spines (axis lines) black
-        for spine in ax.spines.values():
-            spine.set_color((0, 0, 0, 1))  # Solid black for spines
+        # Equal aspect ratio ensures that pie is drawn as a circle
+        ax.axis('equal')
 
-        plt.xticks(rotation=45, ha='right')
+        # Add lines and labels
+        bbox_props = dict(boxstyle="round,pad=0.3", fc="w", ec="k", lw=0.72)
+        kw = dict(arrowprops=dict(arrowstyle="-", color="k"),
+                  bbox=bbox_props, zorder=0, va="center")
+
+        for i, p in enumerate(wedges):
+            ang = (p.theta2 - p.theta1) / 2. + p.theta1
+            y = np.sin(np.deg2rad(ang))
+            x = np.cos(np.deg2rad(ang))
+            horizontalalignment = {-1: "right", 1: "left"}[int(np.sign(x))]
+            connectionstyle = f"angle,angleA=0,angleB={ang}"
+            kw["arrowprops"].update({"connectionstyle": connectionstyle})
+            ax.annotate(categories[i], xy=(x, y), xytext=(1.35 * np.sign(x), 1.4 * y),
+                        horizontalalignment=horizontalalignment, **kw)
+
+        ax.set_title('PDFs by Category', fontsize=16, fontweight='bold')
+
+        # Remove duplicated text inside pie slices
+        for autotext in autotexts:
+            autotext.set_visible(False)
+
+        # Add a legend
+        ax.legend(wedges, categories, title="Categories", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+
         plt.tight_layout()
         st.pyplot(fig, transparent=True)
 
     def display_calendar(self):
         st.title('Governance Calendar')
 
-        col1, col2 = st.columns([5, 2])
+        col1, col2 = st.columns([3, 1])
 
         with col1:
             st.write("### PDFs by Category")
-            self.display_category_bar_chart()
+            self.display_category_pie_chart()
 
         with col2:
             st.title('PDF Files')
@@ -170,7 +194,7 @@ class Calendar:
             # Add update dashboard button right below the dropdown
             if st.button('Update Dashboard'):
                 self.update_categories()
-                st.rerun()  # This will rerun the entire app
+                st.experimental_rerun()  # This will rerun the entire app
 
         # Fetch data after potential update
         all_dates = self.fetch_all_dates()
@@ -189,59 +213,48 @@ class Calendar:
 
         st.markdown("---")
 
-        # Display upcoming events and failed PDFs side by side with pagination
-        col1, col2 = st.columns(2)
+        # Create a combined dataframe for upcoming events and outdated PDFs
+        events_data = []
+        today = datetime.today().date()
 
-        with col1:
-            st.subheader('Upcoming Events')
-            events_per_page = 2
-            total_events = len(upcoming_events)
-            max_events_page = (total_events - 1) // events_per_page
+        for event in upcoming_events:
+            review_date = datetime.strptime(event[2].split()[0], '%Y-%m-%d').date() if event[2] else None
+            remarks = 'Upcoming Event' if review_date and review_date >= today else 'Expired PDF'
+            events_data.append({
+                'File Name': os.path.splitext(event[0])[0],
+                # 'Effective Date': event[1].split()[0] if event[1] else '',
+                'Review Date': event[2].split()[0] if event[2] else '',
+                'Remarks': remarks
+            })
 
-            start_idx = st.session_state.events_page * events_per_page
-            end_idx = min(start_idx + events_per_page, total_events)
+        for pdf in self.failed_pdfs:
+            events_data.append({
+                'File Name': os.path.splitext(pdf)[0],
+                # 'Effective Date': '',
+                'Review Date': '',
+                'Remarks': 'Outdated Format'
+            })
 
-            for event in upcoming_events[start_idx:end_idx]:
-                if event[1]:  # date_effective
-                    st.write(f"**Effective Date of {os.path.splitext(event[0])[0]}**: {event[1].split()[0]}")
-                if event[2]:  # review_date
-                    st.write(f"**Review Date of {os.path.splitext(event[0])[0]}**: {event[2].split()[0]}")
+        df = pd.DataFrame(events_data)
 
-            col1_1, col1_2 = st.columns(2)
-            with col1_1:
-                if st.button('Previous Events', key='prev_events', disabled=st.session_state.events_page == 0):
-                    st.session_state.events_page = max(0, st.session_state.events_page - 1)
-                    st.rerun()  # Rerun to update the display
-            with col1_2:
-                if st.button('Next Events', key='next_events',
-                             disabled=st.session_state.events_page == max_events_page):
-                    st.session_state.events_page = min(max_events_page, st.session_state.events_page + 1)
-                    st.rerun()  # Rerun to update the display
+        # Display the combined table
+        st.subheader('Upcoming Events and Outdated PDFs')
 
-        with col2:
-            st.subheader('Outdated PDF Format')
-            pdfs_per_page = 5
-            total_pdfs = len(self.failed_pdfs)
-            max_pdfs_page = (total_pdfs - 1) // pdfs_per_page
+        # Add checkbox for filtering
+        show_upcoming_events = st.checkbox('Show Upcoming Events', value=True)
+        show_outdated_pdfs = st.checkbox('Show Outdated PDFs', value=True)
+        show_expired_pdfs = st.checkbox('Show Expired PDFs', value=True)
 
-            start_idx = st.session_state.failed_pdfs_page * pdfs_per_page
-            end_idx = min(start_idx + pdfs_per_page, total_pdfs)
+        # Filter data based on checkboxes
+        if not show_upcoming_events:
+            df = df[df['Remarks'] != 'Upcoming Event']
+        if not show_outdated_pdfs:
+            df = df[df['Remarks'] != 'Outdated Format']
+        if not show_expired_pdfs:
+            df = df[df['Remarks'] != 'Expired PDF']
 
-            if self.failed_pdfs:
-                for pdf in self.failed_pdfs[start_idx:end_idx]:
-                    st.write(f"- {pdf}")
-            else:
-                st.write("No PDFs failed to process.")
-
-            col2_1, col2_2 = st.columns(2)
-            with col2_1:
-                if st.button('Previous PDFs', key='prev_pdfs', disabled=st.session_state.failed_pdfs_page == 0):
-                    st.session_state.failed_pdfs_page = max(0, st.session_state.failed_pdfs_page - 1)
-                    st.rerun()  # Rerun to update the display
-            with col2_2:
-                if st.button('Next PDFs', key='next_pdfs', disabled=st.session_state.failed_pdfs_page == max_pdfs_page):
-                    st.session_state.failed_pdfs_page = min(max_pdfs_page, st.session_state.failed_pdfs_page + 1)
-                    st.rerun()  # Rerun to update the display
+        # Display the table with a scroll bar
+        st.dataframe(df, height=400)
 
         st.markdown("---")
 

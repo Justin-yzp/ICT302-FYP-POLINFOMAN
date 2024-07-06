@@ -1,42 +1,33 @@
 
 Governance:
-  - Alcohol and Substance Misuse Policy.pdf
-  - Children in the Workplace Policy.pdf
   - Code of Ethics (3081_0).pdf
   - Senate Statement of Governance Principles (3217_1).pdf
 
 Health Safety and Environment:
+  - Alcohol and Substance Misuse Policy.pdf
   - Environmental Sustainability Policy.pdf
   - Health and Safety Policy.pdf
   - Immunisation Policy.pdf
   - Injury Management Policy.pdf
-  - Portable Amenity Furniture Policy.pdf
   - Recycling and Waste Management Policy.pdf
   - Water Management Policy.pdf
 
 Learning and Teaching:
   - Assessment_Policy_3073_3.pdf
   - Award Nomenclature, Certification and Issuance Policy (3223_0).pdf
-  - Library Collections Policy.pdf
-  - Library Online Licensed Resource Access.pdf
+  - Grades_Policy_3090_3.pdf
   - Rules for the Conduct of Examinations (3161_0).pdf
   - Student Academic Integrity Policy (3166_0).pdf
 
 Physical Facilities:
   - Air Conditioning and Heating Policy.pdf
-  - Event Approval Policy (3227_4).pdf
-  - Event Approval Procedure (3228_0).pdf
-  - Maintenance Planning Policy.pdf
-  - Parking and Traffic Policy.pdf
+  - Portable Amenity Furniture Policy.pdf
   - Safely Managing Building and Maintenance Works on University Property Guideline.pdf
-  - Security Policy.pdf
 
 Research:
   - Animal Ethics Policy.pdf
   - Government Research Training Program Scholarship Policy.pdf
   - Graduate Research Degrees Joint Doctoral Degree Policy.pdf
-  - Graduate Research Degrees Procedure.pdf
-  - Human Research Ethics Policy.pdf
   - Research Data Management Policy.pdf
-  - Research Data Management Procedure.pdf
   - Research Integrity Policy.pdf
+  - Research Data Management Procedure.pdf
