@@ -1,7 +1,7 @@
 # pages_app/admin_user_management.py
 import streamlit as st
 import re
-from db.db_handler import add_user, get_all_users, update_user, delete_user
+from db.db_handler import add_user, get_all_users, update_user, delete_user, user_exists
 
 def is_valid_password(password):
     if len(password) < 8:
@@ -63,7 +63,9 @@ def admin_user_management():
 
     if st.button("Add User", key="add_user_btn"):
         if new_user and new_user_password:
-            if is_valid_password(new_user_password):
+            if user_exists(new_user):
+                st.error("Username already exists. Please choose a different username.")
+            elif is_valid_password(new_user_password):
                 add_user(new_user, new_user_password)
                 st.success("New user added successfully")
             else:

@@ -52,6 +52,16 @@ def display_calendar(db_path):
     cal = Calendar(db_path)
     cal.display_calendar()
 
+# User guide for each page
+user_guides = {
+    'welcome': "Welcome to our application! Navigate through the sidebar to explore different features.",
+    'login': "Please enter your username and password to log in. If you don't have an account, contact an admin.",
+    'dashboard': "View and manage your calendar events here. You can add, edit, or delete events as needed.",
+    'rag': "Use this feature to chat with and query your documents. Upload files and ask questions to get relevant information.",
+    'about': "Learn more about our application, its features, and how to use it effectively.",
+    'register': "Admin only: Use this panel to register new users and manage user accounts."
+}
+
 # Sidebar navigation items
 sidebar_items_logged_out = {
     '🏠 Welcome': 'welcome',
@@ -77,6 +87,11 @@ selected_page = st.sidebar.radio("Navigation", list(sidebar_items.keys()))
 
 # Update session state based on selected page
 st.session_state['page'] = sidebar_items[selected_page]
+
+# Display user guide for the current page
+st.sidebar.markdown("---")
+st.sidebar.subheader("User Guide")
+st.sidebar.write(user_guides[st.session_state['page']])
 
 # Display the appropriate page
 if st.session_state['logged_in']:

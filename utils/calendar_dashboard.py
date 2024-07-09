@@ -164,13 +164,17 @@ class Calendar:
             connectionstyle = f"angle,angleA=0,angleB={ang}"
             kw["arrowprops"].update({"connectionstyle": connectionstyle})
             ax.annotate(categories[i], xy=(x, y), xytext=(1.35 * np.sign(x), 1.4 * y),
+                        fontsize=12,  # Adjust font size as needed
                         horizontalalignment=horizontalalignment, **kw)
 
         ax.set_title('PDFs by Category', fontsize=16, fontweight='bold')
 
-        # Remove duplicated text inside pie slices
-        for autotext in autotexts:
-            autotext.set_visible(False)
+        # Show numbers inside pie chart
+        for i, autotext in enumerate(autotexts):
+            autotext.set_visible(True)
+            autotext.set_fontsize(12)  # Adjust font size as needed
+            autotext.set_color('white')  # Set text color
+            autotext.set_text(f'{values[i]}')  # Display count
 
         # Add a legend
         ax.legend(wedges, categories, title="Categories", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
@@ -184,7 +188,7 @@ class Calendar:
         col1, col2 = st.columns([3, 1])
 
         with col1:
-            st.write("### PDFs by Category")
+            # st.write("### PDFs by Category")
             self.display_category_pie_chart()
 
         with col2:
@@ -194,7 +198,7 @@ class Calendar:
             # Add update dashboard button right below the dropdown
             if st.button('Update Dashboard'):
                 self.update_categories()
-                st.experimental_rerun()  # This will rerun the entire app
+                st.rerun()  # This will rerun the entire app
 
         # Fetch data after potential update
         all_dates = self.fetch_all_dates()
@@ -238,12 +242,23 @@ class Calendar:
         df = pd.DataFrame(events_data)
 
         # Display the combined table
-        st.subheader('Upcoming Events and Outdated PDFs')
+        st.subheader('PDF and Event Status')
 
-        # Add checkbox for filtering
-        show_upcoming_events = st.checkbox('Show Upcoming Events', value=True)
-        show_outdated_pdfs = st.checkbox('Show Outdated PDFs', value=True)
-        show_expired_pdfs = st.checkbox('Show Expired PDFs', value=True)
+        col1, col2, col3 = st.columns(3)
+
+        # Checkbox for showing upcoming events
+        with col1:
+            show_upcoming_events = st.checkbox('Show Upcoming Events', value=True)
+
+        # Checkbox for showing outdated PDFs
+        with col2:
+            show_outdated_pdfs = st.checkbox('Show Outdated PDFs', value=True)
+
+        # Checkbox for showing expired PDFs
+        with col3:
+            show_expired_pdfs = st.checkbox('Show Expired PDFs', value=True)
+
+
 
         # Filter data based on checkboxes
         if not show_upcoming_events:
@@ -254,7 +269,7 @@ class Calendar:
             df = df[df['Remarks'] != 'Expired PDF']
 
         # Display the table with a scroll bar
-        st.dataframe(df, height=400)
+        st.dataframe(df, height=300)
 
         st.markdown("---")
 

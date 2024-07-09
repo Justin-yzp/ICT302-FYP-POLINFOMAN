@@ -60,4 +60,12 @@ def delete_user(username):
     conn.commit()
     conn.close()
 
+def user_exists(username):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT 1 FROM users WHERE username = ?', (username,))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
 create_table()
