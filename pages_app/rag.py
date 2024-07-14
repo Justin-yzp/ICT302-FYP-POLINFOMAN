@@ -276,21 +276,18 @@ def rag():
 
             st.markdown(
                 '<div style="background-color: #f9f9f9; padding: 10px; border-radius: 5px;">'
+                '<strong>Response:</strong><br>'
                 f'{st.session_state.previous_response["content"]}'
                 '</div>',
                 unsafe_allow_html=True
             )
 
             if "contexts" in st.session_state.previous_response:
-                st.markdown(
-                    '<div style="background-color: #e9e9e9; padding: 10px; border-radius: 5px;">'
-                    '<strong>Context Snippets:</strong>'
-                    '<ul>'
-                    f'{"".join([f"<li><strong>{source}:</strong> {context}</li>" for source, context in st.session_state.previous_response["contexts"]])}'
-                    '</ul>'
-                    '</div>',
-                    unsafe_allow_html=True
-                )
+                with st.expander("View Context Snippets"):
+                    for source, context in st.session_state.previous_response["contexts"]:
+                        st.markdown(f"**Source: {source}**")
+                        st.text_area("Context:", value=context, height=150, disabled=True)
+                        st.markdown("---")
 
 
 if __name__ == '__main__':

@@ -1,4 +1,3 @@
-# pages_app/style.py
 import base64
 import requests
 
@@ -32,6 +31,7 @@ def apply_custom_styles():
             font-family: 'Arial', sans-serif;
             color: #000000;
             margin-top: 0px;  /* Adjust this value as needed */
+            padding-bottom: 70px;  /* Add padding to the bottom to prevent overlap with footer */
         }
 
         header {
@@ -78,7 +78,22 @@ def apply_custom_styles():
             padding: 10px;
             backdrop-filter: blur(5px);
         }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background-color: black;  /* Black background */
+            color: white;  /* White text */
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+            z-index: 1000;  /* Ensure footer is on top */
+        }
         </style>
+        <div class="footer">
+            <p>Disclaimer: This AI system is not completely reliable and may provide inaccurate information. Always verify the results independently.</p>
+        </div>
     """, unsafe_allow_html=True)
-
-
