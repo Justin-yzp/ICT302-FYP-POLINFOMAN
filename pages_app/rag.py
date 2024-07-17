@@ -21,7 +21,8 @@ def clear_specific_cache():
 
 
 def clear_all_cache():
-    keys_to_clear = ["cache_key", "chat_engine", "chunk_size", "docs", "pdf_files", "previous_response"]
+    keys_to_clear = ["cache_key", "chat_engine", "chunk_size", "docs", "pdf_files", "previous_response",
+                     "preloaded_data"]
     for key in keys_to_clear:
         if key in st.session_state:
             del st.session_state[key]
@@ -53,6 +54,26 @@ def load_data_with_chunk_size(chunk_size, overlap_size, cache_key):
         st.write(f"Processing time: {processing_time:.2f} seconds")
 
         return index, docs
+
+
+@st.cache_resource(show_spinner=False)
+def preload_all_precision_levels(pdf_files):
+    precision_levels = {
+        "Low": (200, 20),
+        "Medium": (100, 10),
+        "High": (50, 5)
+    }
+
+    preloaded_data = {}
+    for precision, (chunk_size, overlap_size) in precision_levels.items():
+        cache_key = generate_cache_key(chunk_size, overlap_size, pdf_files)
+        index, docs = load_data_with_chunk_size(chunk_size, overlap_size, cache_key)
+        preloaded_data[precision] = {
+            "index": index,
+            "docs": docs,
+            "chat_engine": index.as_chat_engine(chat_mode="condense_question", verbose=True)
+        }
+    return preloaded_data
 
 
 def is_valid_query(query):
@@ -137,6 +158,7 @@ def get_accuracy_color(score):
 
 
 def rag():
+    clear_specific_cache()
     st.title("University Document Library")
     st.markdown(
         """
@@ -148,35 +170,37 @@ def rag():
         </div>
         """, unsafe_allow_html=True)
 
-    precision = st.radio("Select precision level:", ["Low", "Medium", "High"])
-
-    if precision == "Low":
-        chunk_size, overlap_size = 200, 20
-    elif precision == "Medium":
-        chunk_size, overlap_size = 100, 10
-    else:  # High precision
-        chunk_size, overlap_size = 50, 5
-
     current_pdf_files = get_pdf_files()
 
-    if ("previous_precision" not in st.session_state or
-            st.session_state.previous_precision != precision or
-            "pdf_files" not in st.session_state or
-            set(st.session_state.pdf_files) != set(current_pdf_files)):
-        clear_all_cache()
+    if "preloaded_data" not in st.session_state or set(st.session_state.pdf_files) != set(current_pdf_files):
+        st.session_state.preloaded_data = preload_all_precision_levels(current_pdf_files)
+        st.session_state.pdf_files = current_pdf_files
 
-    st.session_state.previous_precision = precision
-    st.session_state.pdf_files = current_pdf_files
+    st.write("Select precision level:")
+    col1, col2 = st.columns([3, 1])
 
-    cache_key = generate_cache_key(chunk_size, overlap_size, current_pdf_files)
-    st.session_state.cache_key = cache_key
+    with col1:
+        precision = st.radio(
+            "Precision",
+            options=["Low", "Medium", "High"],
+            horizontal=True,
+            label_visibility="collapsed"
+        )
 
-    index, docs = load_data_with_chunk_size(chunk_size, overlap_size, cache_key)
+    with col2:
+        if st.button("Clear Cache"):
+            clear_all_cache()
+            st.success("Cache cleared successfully!")
+            st.rerun()
 
-    if "chat_engine" not in st.session_state or st.session_state.chunk_size != chunk_size:
-        st.session_state.chat_engine = index.as_chat_engine(chat_mode="condense_question", verbose=True)
-        st.session_state.chunk_size = chunk_size
-        st.session_state.docs = docs
+    # Use preloaded data
+    preloaded_data = st.session_state.preloaded_data[precision]
+    index = preloaded_data["index"]
+    docs = preloaded_data["docs"]
+    chat_engine = preloaded_data["chat_engine"]
+
+    st.session_state.chat_engine = chat_engine
+    st.session_state.docs = docs
 
     st.markdown(
         """
@@ -187,15 +211,19 @@ def rag():
         """, unsafe_allow_html=True)
 
     prompt = st.text_input("Your question")
+
     if prompt:
+        clear_specific_cache()
+        chat_engine = preloaded_data["index"].as_chat_engine(chat_mode="condense_question", verbose=True)
+        # Use this chat_engine for the current query
         if not is_valid_query(prompt):
             st.warning("Please enter a valid question or query.")
             return
 
-        clear_specific_cache()
+        # clear_specific_cache()
 
         with st.spinner("Thinking..."):
-            response = index.as_chat_engine(chat_mode="condense_question", verbose=True).chat(prompt)
+            response = chat_engine.chat(prompt)
 
             if not response.response.strip():
                 st.warning("I couldn't find any relevant information to answer your query.")
@@ -236,28 +264,38 @@ def rag():
     col1, col2 = st.columns([1, 2])
 
     with col1:
-        if 'previous_response' in st.session_state and "sources" in st.session_state.previous_response:
-            sources = st.session_state.previous_response["sources"]
-            if sources:
+        if 'previous_response' in st.session_state:
+            accuracy_score = st.session_state.previous_response.get("accuracy_score", 0)
+            if accuracy_score >= 5:  # Only show sources if the score is 5 or above
+                sources = st.session_state.previous_response.get("sources", [])
+                if sources:
+                    st.markdown(
+                        f'<div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">'
+                        f'**Sources:**'
+                        f'<ul>'
+                        f'{"".join([f"<li>{source}</li>" for source in sources])}'
+                        f'</ul>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+
+                    def download_files():
+                        for i, source in enumerate(sources):
+                            source_path = os.path.join("pdfs", source)
+                            with open(source_path, "rb") as f:
+                                contents = f.read()
+                            st.download_button(label=f"Download {source}", data=contents, file_name=source,
+                                               mime="application/pdf", key=f"download_{i}")
+
+                    download_files()
+            else:
                 st.markdown(
-                    f'<div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">'
-                    f'**Sources:**'
-                    f'<ul>'
-                    f'{"".join([f"<li>{source}</li>" for source in sources])}'
-                    f'</ul>'
-                    f'</div>',
+                    '<div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; color: #FF0000;">'
+                    '<strong>Sources:</strong><br>'
+                    'No sources available as the query is not relevant.'
+                    '</div>',
                     unsafe_allow_html=True
                 )
-
-                def download_files():
-                    for i, source in enumerate(sources):
-                        source_path = os.path.join("pdfs", source)
-                        with open(source_path, "rb") as f:
-                            contents = f.read()
-                        st.download_button(label=f"Download {source}", data=contents, file_name=source,
-                                           mime="application/pdf", key=f"download_{i}")
-
-                download_files()
 
     with col2:
         if 'previous_response' in st.session_state:
@@ -267,27 +305,32 @@ def rag():
             else:
                 accuracy_color = get_accuracy_color(accuracy_score)
                 st.markdown(
-                    f'<div style="background-color: #e0e0e0; padding: 10px; border-radius: 5px; margin-bottom: 10px;">'
-                    f'<strong>Estimated Relevance:</strong> <span style="color: {accuracy_color};">{accuracy_score:.2f}%</span>'
-                    f'<br><small>(This score indicates the estimated relevance of the response, not its factual accuracy)</small>'
-                    f'</div>',
+                    f'''
+                    <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                        <strong>Estimated Relevance:</strong><br>
+                        <div style="background-color: #e0e0e0; border-radius: 5px; height: 20px; width: 100%;">
+                            <div style="background-color: {accuracy_color}; width: {accuracy_score}%; height: 100%; border-radius: 5px;"></div>
+                        </div>
+                        <span>{accuracy_score:.2f}% (This score indicates the estimated relevance of the response, not its factual accuracy)</span>
+                    </div>
+                    ''',
                     unsafe_allow_html=True
                 )
 
-            st.markdown(
-                '<div style="background-color: #f9f9f9; padding: 10px; border-radius: 5px;">'
-                '<strong>Response:</strong><br>'
-                f'{st.session_state.previous_response["content"]}'
-                '</div>',
-                unsafe_allow_html=True
-            )
+                st.markdown(
+                    '<div style="background-color: #f9f9f9; padding: 10px; border-radius: 5px;">'
+                    '<strong>Response:</strong><br>'
+                    f'{st.session_state.previous_response["content"]}'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
 
-            if "contexts" in st.session_state.previous_response:
-                with st.expander("View Context Snippets"):
-                    for source, context in st.session_state.previous_response["contexts"]:
-                        st.markdown(f"**Source: {source}**")
-                        st.text_area("Context:", value=context, height=150, disabled=True)
-                        st.markdown("---")
+                if "contexts" in st.session_state.previous_response:
+                    with st.expander("View Context Snippets"):
+                        for source, context in st.session_state.previous_response["contexts"]:
+                            st.markdown(f"**Source: {source}**")
+                            st.text_area("Context:", value=context, height=150, disabled=True)
+                            st.markdown("---")
 
 
 if __name__ == '__main__':
