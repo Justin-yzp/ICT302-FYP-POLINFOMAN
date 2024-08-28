@@ -84,7 +84,7 @@ This project has been a transformative learning journey, bridging the gap betwee
 
 <div align="center">
 
-📧 [Contact Developer](mailto:your-email@example.com) | 🌐 [Project Repository](https://github.com/your-username/POLINFOMAN)
+📧 [Contact Developer](mailto:zhanpeng.justin@gmail.com) | 🌐 [Project Repository](https://github.com/your-username/POLINFOMAN)
 
 <sub>Developed with passion as part of my Final Year Project in Software Engineering</sub>
 </div>
