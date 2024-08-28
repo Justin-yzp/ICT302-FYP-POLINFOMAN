@@ -13,7 +13,7 @@
 
 POLINFOMAN is a comprehensive web application developed as a Final Year Project (FYP). It seamlessly integrates an interactive calendar system with advanced document management and querying capabilities. Built on Streamlit, the application offers a range of functionalities including robust user authentication, efficient event management, and innovative document querying powered by RAG (Retrieval-Augmented Generation) technology.
 
-![POLINFOMAN Demo](https://your-demo-gif-url-here.gif)
+![POLINFOMAN Demo](https://github.com/Justin-yzp/ICT302-FYP-POLINFOMAN/blob/main/RAG2.jpg)
 
 ## Key Features
 
